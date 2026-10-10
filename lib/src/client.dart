@@ -8,7 +8,7 @@ import 'webhook.dart';
 const _version = '0.1.0';
 
 /// Where the gateway lives when no `baseUrl` is passed.
-const _defaultBaseUrl = '';
+const _defaultBaseUrl = 'https://api.payitgo.co';
 
 /// How long a closed payment's address is still watched for late deposits.
 const _lateWindow = Duration(hours: 24);
