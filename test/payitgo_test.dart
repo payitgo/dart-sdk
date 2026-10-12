@@ -62,13 +62,52 @@ const chosen = {
   'deposits': [],
   'expires_at': '2026-10-10T12:15:00Z',
   'created_at': '2026-10-10T12:00:00Z',
-  'network_fee_note':
-      'XRP Ledger testnet: test XRP only. Include destination tag — required.',
+  'network_fee_note': 'Near-zero fees. Include destination tag — required.',
   'qr_payload': 'rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe',
   'checkout_token': 'ct_abc',
   'checkout_url': 'https://pay.example/ct_abc',
   'description': 'Order 7',
   'metadata': {'cart': '42'},
+};
+
+/// A test payment whose simulated outcome has paid it.
+const simulated = {
+  'id': 'pay_2',
+  'merchant_id': 'mch_1',
+  'order_id': 'ORD-8',
+  'status': 'detecting',
+  'livemode': false,
+  'simulation': {'outcome': 'confirmed', 'state': 'running'},
+  'token': 'USDT_TRC20',
+  'chain': 'tron',
+  'deposit_address': 'TPk2bpQqWRpXiaUHS9SXnZCDgvwrsuJ71o',
+  'crypto_amount': '20',
+  'received_amount': '20',
+  'usd_amount': '20',
+  'amount_due_usd': '20',
+  'fees_paid_by_customer': false,
+  'network_fee': '1',
+  'network_fee_usd': '0.3',
+  'settlement': 'custodial',
+  'received_usd': '20',
+  'rate_locked': '1',
+  'deposits': [
+    {
+      'tx_id': 'sim_pay_2_1791817211348_0',
+      'token': 'USDT_TRC20',
+      'chain': 'tron',
+      'amount': '20',
+      'usd_value': '20',
+      'counted': true,
+      'status': 'pending',
+      'seen_at': '2026-10-10T12:00:05Z',
+      'simulated': true,
+    }
+  ],
+  'expires_at': '2026-10-10T12:15:00Z',
+  'created_at': '2026-10-10T12:00:00Z',
+  'network_fee_note': 'Near-zero fees on Tron. Fastest settlement.',
+  'qr_payload': 'TPk2bpQqWRpXiaUHS9SXnZCDgvwrsuJ71o',
 };
 
 /// A client whose requests go to [requests] and are answered with [status]
@@ -308,6 +347,64 @@ void main() {
     });
   });
 
+  group('payments.simulate', () {
+    late List<http.Request> requests;
+    setUp(() => requests = []);
+
+    test('posts the outcome with the key and returns the payment', () async {
+      final payitgo = fakeGateway(requests, 200, simulated);
+      final p = await payitgo.payments.simulate('pay_2', 'confirmed');
+      expect(requests.single.method, 'POST');
+      expect(requests.single.url.toString(),
+          'https://gateway.test/v1/payments/pay_2/simulate');
+      expect(requests.single.headers['Authorization'], 'Bearer sk_test_abc');
+      expect(requests.single.headers['Content-Type'],
+          startsWith('application/json'));
+      expect(jsonDecode(requests.single.body), {'outcome': 'confirmed'});
+      expect(p.raw, simulated);
+      expect((p.simulation!.outcome, p.simulation!.state),
+          ('confirmed', 'running'));
+      expect(p.deposits.single.simulated, isTrue);
+      expect(p.deposits.single.txId, startsWith('sim_'));
+      expect(Payment(chosen).simulation, isNull);
+      expect(Deposit({'tx_id': 'c19240'}).simulated, isFalse);
+    });
+
+    test('escapes an order id in the path, as retrieve does', () async {
+      final payitgo = fakeGateway(requests, 200, simulated);
+      await payitgo.payments.simulate('ORD 8/1', 'expired');
+      expect(requests.single.url.toString(),
+          'https://gateway.test/v1/payments/ORD%208%2F1/simulate');
+    });
+
+    test('a simulation still running is a 409', () async {
+      const message = 'a simulation is already running for this payment';
+      final payitgo = fakeGateway(requests, 409, {'error': message});
+      await expectLater(
+          payitgo.payments.simulate('pay_2', 'confirmed'),
+          throwsA(isA<PayitgoException>()
+              .having((e) => e.status, 'status', 409)
+              .having((e) => e.message, 'message', message)));
+    });
+
+    test('payments.create sends simulate', () async {
+      final payitgo = fakeGateway(requests, 201, simulated);
+      final p = await payitgo.payments.create(
+          orderId: 'ORD-8',
+          amountUsd: 20,
+          token: 'USDT_TRC20',
+          simulate: 'confirmed');
+      expect(jsonDecode(requests.single.body), {
+        'order_id': 'ORD-8',
+        'amount_usd': '20',
+        'token': 'USDT_TRC20',
+        'simulate': 'confirmed'
+      });
+      expect(p.simulation!.outcome, 'confirmed');
+      expect(Payments.simulationOutcomes, contains('confirmed'));
+    });
+  });
+
   group('client webhooks.constructEvent', () {
     test('uses the client\'s webhookSecret', () {
       final payitgo =
@@ -458,6 +555,29 @@ void main() {
               .having((e) => e.message, 'message', isNot(contains('closed')))));
       payitgo.close();
     });
+  });
+
+  test('checkout.simulate posts the outcome, without a key', () async {
+    late http.Request sent;
+    final checkout = PayitgoCheckout(
+        baseUrl: 'https://gateway.test',
+        httpClient: MockClient((req) async {
+          sent = req;
+          return http.Response(
+              jsonEncode({
+                ...chosen,
+                'simulation': {'outcome': 'confirmed', 'state': 'running'},
+              }),
+              200,
+              headers: {'content-type': 'application/json'});
+        }));
+    final p = await checkout.simulate('cs_1/2', 'confirmed');
+    expect(sent.method, 'POST');
+    expect(
+        sent.url.toString(), 'https://gateway.test/checkout/cs_1%2F2/simulate');
+    expect(jsonDecode(sent.body), {'outcome': 'confirmed'});
+    expect(sent.headers.containsKey('authorization'), isFalse);
+    expect(p.simulation?.state, 'running');
   });
 
   group('checkout.watch', () {
