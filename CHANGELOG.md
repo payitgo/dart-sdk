@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- Test payments are simulated; dollar values on settlements and payouts
+- QR code is the deposit address alone
+
 ## 0.1.1
 
 - The source moved to https://github.com/payitgo/dart-sdk. No code changes.
