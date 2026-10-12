@@ -70,6 +70,23 @@ class Deposit {
 
   /// Why it failed: `transaction not found on chain` or `confirmation timeout`.
   String? get failReason => raw['fail_reason'] as String?;
+
+  /// Played by a test payment's simulation: its [txId] starts with `sim_` and
+  /// is on no chain.
+  bool get simulated => raw['simulated'] as bool? ?? false;
+}
+
+/// A test payment's simulated outcome, and how far it is.
+class Simulation {
+  Simulation(this.raw);
+
+  final Map<String, dynamic> raw;
+
+  /// One of [Payments.simulationOutcomes].
+  String get outcome => raw['outcome'] as String;
+
+  /// requested (asked for on create, waiting for the coin), running or done.
+  String get state => raw['state'] as String;
 }
 
 DateTime? _date(Object? v) => v == null ? null : DateTime.parse(v as String);
@@ -90,6 +107,11 @@ class Payment {
   /// pending, partially_paid, detecting, confirmed, underpaid, expired or failed.
   String get status => raw['status'] as String;
   bool get livemode => raw['livemode'] as bool? ?? false;
+
+  /// A test payment's simulated outcome, when it has one.
+  Simulation? get simulation => raw['simulation'] == null
+      ? null
+      : Simulation(raw['simulation'] as Map<String, dynamic>);
 
   /// Empty until the customer chooses the coin, from [tokenOptions].
   String get token => raw['token'] as String;
@@ -434,12 +456,25 @@ class Payments {
   final _Transport _t;
   final String? _webhookUrl;
 
+  /// The outcomes a test payment can be made to go through: see [simulate].
+  static const simulationOutcomes = [
+    'confirmed',
+    'overpaid',
+    'partially_paid',
+    'underpaid',
+    'expired',
+    'failed',
+    'wrong_asset',
+    'paid_late',
+  ];
+
   /// Creates a payment. Safe to retry: an order with an open payment returns
   /// that payment. Leave [token] out to let the customer choose the coin on
   /// the checkout page, from [tokens] (default: every token the amount
   /// reaches the minimum of). [webhookUrl] (https) gets the payment's events
   /// instead of the webhook's URL, signed with the same secret (default: the
-  /// client's `webhookUrl`).
+  /// client's `webhookUrl`). [simulate] (test keys only) plays that outcome,
+  /// as [simulate] does, once the payment has its coin.
   Future<Payment> create({
     required String orderId,
     required Object amountUsd,
@@ -451,6 +486,7 @@ class Payments {
     String? successUrl,
     String? cancelUrl,
     String? webhookUrl,
+    String? simulate,
   }) async {
     final hookUrl = webhookUrl ?? _webhookUrl;
     final body = <String, dynamic>{
@@ -464,6 +500,7 @@ class Payments {
       if (successUrl != null) 'success_url': successUrl,
       if (cancelUrl != null) 'cancel_url': cancelUrl,
       if (hookUrl != null && hookUrl.isNotEmpty) 'webhook_url': hookUrl,
+      if (simulate != null) 'simulate': simulate,
     };
     return Payment(await _t.request('POST', '/v1/payments', body: body));
   }
@@ -481,6 +518,16 @@ class Payments {
   Future<Payment> selectToken(String id, String token) async => Payment(await _t
       .request('POST', '/v1/payments/${Uri.encodeComponent(id)}/token',
           body: {'token': token}));
+
+  /// Plays [outcome] (one of [simulationOutcomes]) on a test payment: payitgo
+  /// sends its deposits, status changes and webhooks a few seconds apart,
+  /// with no coins. [id] is the payment's id (pay_…) or your order id.
+  /// Returns the whole payment, with its [Payment.simulation]. A live payment
+  /// is a [PayitgoException] with status 400; a simulation that is still
+  /// running, 409.
+  Future<Payment> simulate(String id, String outcome) async => Payment(await _t
+      .request('POST', '/v1/payments/${Uri.encodeComponent(id)}/simulate',
+          body: {'outcome': outcome}));
 
   /// Payments of the key's mode, newest first. [storeId] keeps the payments
   /// of one store (ignored for a storefront's key, which sees its own).
@@ -625,6 +672,16 @@ class PayitgoCheckout {
       Payment(await _t.request(
           'POST', '/checkout/${Uri.encodeComponent(checkoutToken)}/token',
           body: {'token': token}));
+
+  /// Plays [outcome] (one of [Payments.simulationOutcomes]) on a test
+  /// payment, for a test checkout's "simulate" buttons: its deposits and
+  /// statuses follow a few seconds apart, with no coins ([watch] shows
+  /// them). A live payment is a [PayitgoException] with status 400; a
+  /// simulation that is still running, 409.
+  Future<Payment> simulate(String checkoutToken, String outcome) async =>
+      Payment(await _t.request(
+          'POST', '/checkout/${Uri.encodeComponent(checkoutToken)}/simulate',
+          body: {'outcome': outcome}));
 
   /// Polls the payment every [every] and emits it at once, then whenever its
   /// status changes. The stream ends once the payment can change no more:

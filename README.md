@@ -80,6 +80,27 @@ The coin is chosen once: choosing again is a `409` (`payments.retrieve` then ret
 payment with its coin). A coin outside `tokenOptions`, or a payment that can no longer be
 paid, is a `400`.
 
+## On your server: test mode
+
+A test payment gets an address like a live one, but no coins are involved: you choose an
+outcome and payitgo plays its deposits, status changes and webhooks a few seconds apart
+([Test mode](https://api.payitgo.co/docs/testing)).
+
+```dart
+// Choose the outcome when you create the payment (with token it starts at once,
+// without it once the coin is chosen)…
+await payitgo.payments.create(orderId: 'TEST-1', amountUsd: 10, token: 'USDT_TRC20', simulate: 'confirmed');
+
+// …or later, on a payment you already have (its id or your order id).
+final payment = await payitgo.payments.simulate('TEST-2', 'partially_paid');
+// payment.simulation: outcome 'partially_paid', state 'running'
+```
+
+Outcomes (`Payments.simulationOutcomes`): `confirmed`, `overpaid`, `partially_paid`,
+`underpaid`, `expired`, `failed`, `wrong_asset`, `paid_late`. Simulated deposits have
+`simulated` true and a `txId` starting with `sim_`. A live key gets `400`; a payment whose
+simulation is still running, `409`.
+
 ## On your server: Webhooks (IPN)
 
 payitgo POSTs a signed notification for every change of a payment (`payment.confirmed`,
@@ -162,8 +183,13 @@ checkout.close();                                          // when the app no lo
 `watch` keeps following an expired or underpaid payment for the 24 hours in which a late
 payment can still complete it (then the stream ends); cancel the subscription to stop sooner.
 
+On a test payment (`payment.livemode` false), `checkout.simulate(checkoutToken, 'confirmed')`
+plays an outcome with no coins, for "simulate" buttons on your test screens; `watch` shows it
+([Test mode](https://api.payitgo.co/docs/testing)).
+
 The app only shows status; your backend still fulfils orders from the
-`payment.confirmed` webhook. Start with your test key (`sk_test_…`) and testnet coins.
+`payment.confirmed` webhook. Start with your test key (`sk_test_…`), where you
+[simulate](#on-your-server-test-mode) what the customer pays.
 
 ## API
 
@@ -176,8 +202,9 @@ final payitgo = Payitgo(apiKey,
 
 payitgo.livemode;                                          // false for sk_test_ keys
 await payitgo.payments.create(orderId: …, amountUsd: …, token: …, description: …, metadata: {…},
-                            customerEmail: …, successUrl: …, cancelUrl: …, webhookUrl: …);
+                            customerEmail: …, successUrl: …, cancelUrl: …, webhookUrl: …, simulate: …);
 await payitgo.payments.selectToken('pay_…', token);        // or your order id: the payment with its coin
+await payitgo.payments.simulate('pay_…', 'confirmed');     // test keys: plays the outcome
 await payitgo.payments.retrieve('pay_…');                  // or your order id
 await payitgo.payments.list(status: 'confirmed', storeId: 'sto_…', limit: 50, offset: 0); // every filter optional
 await payitgo.tokens.list();                               // [TokenInfo(token, chain, minUsd, networkFeeUsd, feeNote)]
