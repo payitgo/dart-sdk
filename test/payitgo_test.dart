@@ -64,8 +64,7 @@ const chosen = {
   'created_at': '2026-10-10T12:00:00Z',
   'network_fee_note':
       'XRP Ledger testnet: test XRP only. Include destination tag — required.',
-  'qr_payload':
-      'xrpl:rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe?amount=20.000000&dt=1042',
+  'qr_payload': 'rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe',
   'checkout_token': 'ct_abc',
   'checkout_url': 'https://pay.example/ct_abc',
   'description': 'Order 7',
@@ -283,8 +282,7 @@ void main() {
       expect(p.destinationTag, 1042);
       expect(p.cryptoAmount, '20');
       expect(p.rateLocked, '0.5');
-      expect(p.qrPayload,
-          'xrpl:rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe?amount=20.000000&dt=1042');
+      expect(p.qrPayload, 'rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe');
       expect(p.expiresAt, DateTime.utc(2026, 10, 10, 12, 15));
       expect(p.checkoutToken, 'ct_abc');
       expect(p.checkoutUrl, 'https://pay.example/ct_abc');
@@ -435,7 +433,8 @@ void main() {
     });
 
     test('closes the one client the SDK made, which checkout shares', () async {
-      final payitgo = Payitgo('sk_test_abc', baseUrl: 'http://x', maxRetries: 0);
+      final payitgo =
+          Payitgo('sk_test_abc', baseUrl: 'http://x', maxRetries: 0);
       payitgo.close();
       final closed = isA<PayitgoException>()
           .having((e) => e.status, 'status', 0)
@@ -446,7 +445,8 @@ void main() {
       await expectLater(checkout.retrieve('cs_1'), throwsA(closed));
     });
 
-    test('the checkout of a Payitgo does not close the shared client', () async {
+    test('the checkout of a Payitgo does not close the shared client',
+        () async {
       final payitgo =
           Payitgo('sk_test_abc', baseUrl: 'http://127.0.0.1:9', maxRetries: 0);
       payitgo.checkout.close();
