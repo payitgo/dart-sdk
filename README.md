@@ -227,10 +227,10 @@ payitgo.livemode;                                          // false for sk_test_
 await payitgo.payments.create(orderId: …, amountUsd: …, token: …, description: …, metadata: {…},
                             customerEmail: …, successUrl: …, cancelUrl: …, webhookUrl: …, simulate: …);
 await payitgo.payments.create(orderId: …, priceAmount: …, priceCurrency: …, …); // priced in another currency
-await payitgo.payments.selectToken('pay_…', token);        // or your order id: the payment with its coin
-await payitgo.payments.simulate('pay_…', 'confirmed');     // test keys: plays the outcome
-await payitgo.payments.retrieve('pay_…');                  // or your order id
-await payitgo.payments.list(status: 'confirmed', storeId: 'sto_…', limit: 50, offset: 0); // every filter optional
+await payitgo.payments.selectToken(paymentId, token);      // or your order id: the payment with its coin
+await payitgo.payments.simulate(paymentId, 'confirmed');   // test keys: plays the outcome
+await payitgo.payments.retrieve(paymentId);                // or your order id
+await payitgo.payments.list(status: 'confirmed', storeId: storeId, limit: 50, offset: 0); // every filter optional
 await payitgo.tokens.list();                               // [TokenInfo(token, chain, minUsd, networkFeeUsd, feeNote)]
 await payitgo.tokens.list(amountUsd: '49.90');             // the coins a $49.90 payment offers, with amountDueUsd (a num works too)
 await payitgo.checkout.retrieve(checkoutToken);
