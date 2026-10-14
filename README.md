@@ -55,6 +55,29 @@ Future<Response> ipn(Request request) async {
 }
 ```
 
+## On your server: prices in other currencies
+
+To price a payment in your own currency, give `priceAmount` and `priceCurrency` (an ISO
+4217 code such as `EUR`, `GBP` or `NGN`) instead of `amountUsd`. payitgo converts the price
+into dollars at the rate of the moment, and the payment keeps both:
+
+```dart
+final payment = await payitgo.payments.create(
+  orderId: 'ORD-1002',
+  priceAmount: '45.50',   // sent as priceAmount.toString(): prefer a String to a double
+  priceCurrency: 'EUR',   // any case
+);
+// payment.priceAmount '45.5', payment.priceCurrency 'EUR',
+// payment.priceRate '1.082' (dollars per euro), payment.usdAmount '49.23'
+```
+
+Everything else (`usdAmount`, `cryptoAmount`, fees, minimums) stays in dollars; a payment
+priced in dollars has `null` price getters. Give `amountUsd` or the pair, not both (`400`).
+When no exchange rate can be had, `create` throws a `PayitgoException` with status `503`
+(`exchange rate unavailable for price_currency: try again shortly`) once the client's retries
+are spent: try again shortly. `PayitgoCheckout` reads the same fields, so a Flutter app can
+show the price in your currency next to the dollar amount.
+
 ## On your server: your own payment page
 
 `checkoutUrl` is only for payitgo's hosted page. To show the payment on your own page,
@@ -203,6 +226,7 @@ final payitgo = Payitgo(apiKey,
 payitgo.livemode;                                          // false for sk_test_ keys
 await payitgo.payments.create(orderId: …, amountUsd: …, token: …, description: …, metadata: {…},
                             customerEmail: …, successUrl: …, cancelUrl: …, webhookUrl: …, simulate: …);
+await payitgo.payments.create(orderId: …, priceAmount: …, priceCurrency: …, …); // priced in another currency
 await payitgo.payments.selectToken('pay_…', token);        // or your order id: the payment with its coin
 await payitgo.payments.simulate('pay_…', 'confirmed');     // test keys: plays the outcome
 await payitgo.payments.retrieve('pay_…');                  // or your order id
