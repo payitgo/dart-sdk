@@ -110,6 +110,18 @@ const simulated = {
   'qr_payload': 'TPk2bpQqWRpXiaUHS9SXnZCDgvwrsuJ71o',
 };
 
+/// A payment priced in euros: the gateway converted the price into
+/// usd_amount at price_rate.
+final priced = {
+  ...chosen,
+  'order_id': 'ORD-10',
+  'usd_amount': '49.23',
+  'amount_due_usd': '49.23',
+  'price_amount': '45.5',
+  'price_currency': 'EUR',
+  'price_rate': '1.082',
+};
+
 /// A client whose requests go to [requests] and are answered with [status]
 /// and [reply] (by default: a created payment's body echoed back as the
 /// payment), without any network.
@@ -402,6 +414,45 @@ void main() {
       });
       expect(p.simulation!.outcome, 'confirmed');
       expect(Payments.simulationOutcomes, contains('confirmed'));
+    });
+  });
+
+  group('payments.create with a price in another currency', () {
+    late List<http.Request> requests;
+    setUp(() => requests = []);
+
+    test('sends the price, its amount as a string, and reads it back',
+        () async {
+      final payitgo = fakeGateway(requests, 201, priced);
+      final p = await payitgo.payments
+          .create(orderId: 'ORD-10', priceAmount: 45.5, priceCurrency: 'eur');
+      expect(jsonDecode(requests.single.body), {
+        'order_id': 'ORD-10',
+        'price_amount': '45.5',
+        'price_currency': 'eur'
+      });
+      expect(p.raw, priced);
+      expect((p.priceAmount, p.priceCurrency, p.priceRate, p.usdAmount),
+          ('45.5', 'EUR', '1.082', '49.23'));
+    });
+
+    test('a payment priced in dollars has none of the price fields', () {
+      final p = Payment(chosen);
+      expect(
+          [p.priceAmount, p.priceCurrency, p.priceRate], everyElement(isNull));
+    });
+
+    test('no exchange rate for the currency is a 503', () async {
+      const message =
+          'exchange rate unavailable for price_currency: try again shortly';
+      final payitgo = fakeGateway(requests, 503, {'error': message});
+      await expectLater(
+          payitgo.payments.create(
+              orderId: 'ORD-10', priceAmount: '45.50', priceCurrency: 'EUR'),
+          throwsA(isA<PayitgoException>()
+              .having((e) => e.status, 'status', 503)
+              .having((e) => e.message, 'message', message)));
+      expect(jsonDecode(requests.single.body)['price_amount'], '45.50');
     });
   });
 

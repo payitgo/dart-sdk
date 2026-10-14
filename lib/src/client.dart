@@ -128,6 +128,19 @@ class Payment {
   /// Your price.
   String get usdAmount => raw['usd_amount'] as String;
 
+  /// Your price as you gave it in another currency than the dollar (the
+  /// `priceAmount` of [Payments.create]); null for a payment priced in
+  /// dollars.
+  String? get priceAmount => raw['price_amount'] as String?;
+
+  /// That currency's ISO 4217 code, upper case (`EUR`); null for a payment
+  /// priced in dollars.
+  String? get priceCurrency => raw['price_currency'] as String?;
+
+  /// The dollar value of one unit of [priceCurrency] that [usdAmount] was
+  /// converted at; null for a payment priced in dollars.
+  String? get priceRate => raw['price_rate'] as String?;
+
   /// The coin's dollar price, locked for this payment when its coin was set
   /// ("0" while no coin is chosen).
   String get rateLocked => raw['rate_locked'] as String? ?? '0';
@@ -469,7 +482,10 @@ class Payments {
   ];
 
   /// Creates a payment. Safe to retry: an order with an open payment returns
-  /// that payment. Leave [token] out to let the customer choose the coin on
+  /// that payment. Give the price as [amountUsd] (a String or a num), or as
+  /// [priceAmount] (likewise) in [priceCurrency] (an ISO 4217 code such as
+  /// `EUR`, `GBP` or `NGN`), which payitgo converts into dollars at the rate
+  /// of the moment. Leave [token] out to let the customer choose the coin on
   /// the checkout page, from [tokens] (default: every token the amount
   /// reaches the minimum of). [webhookUrl] (https) gets the payment's events
   /// instead of the webhook's URL, signed with the same secret (default: the
@@ -477,7 +493,9 @@ class Payments {
   /// as [simulate] does, once the payment has its coin.
   Future<Payment> create({
     required String orderId,
-    required Object amountUsd,
+    Object? amountUsd,
+    Object? priceAmount,
+    String? priceCurrency,
     String? token,
     List<String>? tokens,
     String? description,
@@ -491,7 +509,9 @@ class Payments {
     final hookUrl = webhookUrl ?? _webhookUrl;
     final body = <String, dynamic>{
       'order_id': orderId,
-      'amount_usd': amountUsd.toString(),
+      if (amountUsd != null) 'amount_usd': amountUsd.toString(),
+      if (priceAmount != null) 'price_amount': priceAmount.toString(),
+      if (priceCurrency != null) 'price_currency': priceCurrency,
       if (token != null) 'token': token,
       if (tokens != null) 'tokens': tokens,
       if (description != null) 'description': description,
