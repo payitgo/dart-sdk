@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1
+
+- Prices in other currencies: `payments.create` takes `priceAmount` and
+  `priceCurrency` (EUR, GBP, NGN…) instead of `amountUsd`, converted at the
+  rate of the moment; payments carry `priceAmount`, `priceCurrency` and
+  `priceRate`.
+- An example: `example/main.dart` creates a test payment and verifies its
+  webhook.
+
 ## 0.2.0
 
 - Test payments are simulated; dollar values on settlements and payouts
