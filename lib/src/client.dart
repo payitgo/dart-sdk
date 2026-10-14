@@ -525,13 +525,13 @@ class Payments {
     return Payment(await _t.request('POST', '/v1/payments', body: body));
   }
 
-  /// A payment by its id (pay_…) or by your order id (the order's open payment).
+  /// A payment by its id or by your order id (the order's open payment).
   Future<Payment> retrieve(String id) async => Payment(
       await _t.request('GET', '/v1/payments/${Uri.encodeComponent(id)}'));
 
   /// Sets the coin of a payment created without one, when the customer chose
   /// it on your own page: one of its [Payment.tokenOptions]. [id] is the
-  /// payment's id (pay_…) or your order id. Returns the whole payment, now
+  /// payment's id or your order id. Returns the whole payment, now
   /// with its address, amount, locked rate and a deadline 15 minutes away.
   /// The coin is chosen once: choosing again is a [PayitgoException] with
   /// status 409.
@@ -541,7 +541,7 @@ class Payments {
 
   /// Plays [outcome] (one of [simulationOutcomes]) on a test payment: payitgo
   /// sends its deposits, status changes and webhooks a few seconds apart,
-  /// with no coins. [id] is the payment's id (pay_…) or your order id.
+  /// with no coins. [id] is the payment's id or your order id.
   /// Returns the whole payment, with its [Payment.simulation]. A live payment
   /// is a [PayitgoException] with status 400; a simulation that is still
   /// running, 409.
