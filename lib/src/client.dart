@@ -71,8 +71,8 @@ class Deposit {
   /// Why it failed: `transaction not found on chain` or `confirmation timeout`.
   String? get failReason => raw['fail_reason'] as String?;
 
-  /// Played by a test payment's simulation: its [txId] starts with `sim_` and
-  /// is on no chain.
+  /// Played by a test payment's simulation: its [txId] names no transaction
+  /// on any chain.
   bool get simulated => raw['simulated'] as bool? ?? false;
 }
 
@@ -246,7 +246,7 @@ class WebhookSettings {
   /// their own webhook URL.
   String? get url => raw['url'] as String?;
 
-  /// `whsec_…`: signs every notification of the mode. Pass it to [Payitgo] as
+  /// Signs every notification of the mode. Pass it to [Payitgo] as
   /// `webhookSecret`.
   String get secret => raw['secret'] as String;
   DateTime get createdAt => DateTime.parse(raw['created_at'] as String);
@@ -404,11 +404,11 @@ class _Transport {
       Future.delayed(Duration(milliseconds: 500 * (1 << attempt)));
 }
 
-/// The payitgo client, for your server. The API key ([apiKey], `sk_test_…` or
-/// `sk_live_…`) is a secret: never put it in a Flutter app; use
-/// [PayitgoCheckout] there.
+/// The payitgo client, for your server. The API key ([apiKey], a test or a
+/// live key: [isLive] says which) is a secret: never put it in a Flutter app;
+/// use [PayitgoCheckout] there.
 ///
-/// [webhookSecret] is the signing secret of the key's mode (`whsec_…`), which
+/// [webhookSecret] is the signing secret of the key's mode, which
 /// `webhooks.constructEvent` uses when given none; [webhookUrl] is sent as the
 /// `webhook_url` of every payment created without its own.
 ///
@@ -423,24 +423,22 @@ class Payitgo {
       String? webhookSecret,
       String? webhookUrl})
       : this._(
-            _checkKey(apiKey),
-            _Transport(baseUrl ?? _defaultBaseUrl, apiKey, httpClient,
-                maxRetries, timeout),
+            _Transport(baseUrl ?? _defaultBaseUrl, _checkKey(apiKey),
+                httpClient, maxRetries, timeout),
             webhookSecret,
             webhookUrl);
 
-  Payitgo._(
-      String apiKey, this._transport, String? webhookSecret, String? webhookUrl)
-      : livemode = apiKey.startsWith('sk_live_') {
+  Payitgo._(this._transport, String? webhookSecret, String? webhookUrl) {
     payments = Payments._(_transport, webhookUrl);
     tokens = Tokens._(_transport);
     webhooks = Webhooks._(_transport, webhookSecret);
     checkout = PayitgoCheckout._(_Transport._keyless(_transport));
   }
 
-  /// False for a test key (sk_test_…), true for a live key (sk_live_…).
-  final bool livemode;
   final _Transport _transport;
+
+  /// The key's mode, once payitgo has said it ([isLive]).
+  bool? _live;
   late final Payments payments;
   late final Tokens tokens;
 
@@ -454,10 +452,15 @@ class Payitgo {
   /// after closing fail with a [PayitgoException] of status 0.
   void close() => _transport.close();
 
+  /// Whether the key is a live key (its payments are real) rather than a test
+  /// key. payitgo says which (`GET /v1/webhook`'s `livemode`) the first time;
+  /// the answer is kept for the client's life. Throws a [PayitgoException]
+  /// when payitgo refuses the key or cannot be reached.
+  Future<bool> isLive() async => _live ??= (await webhooks.get()).livemode;
+
   static String _checkKey(String key) {
-    if (!key.startsWith('sk_test_') && !key.startsWith('sk_live_')) {
-      throw ArgumentError(
-          'payitgo: the API key must start with sk_test_ or sk_live_');
+    if (key.trim().isEmpty) {
+      throw ArgumentError('payitgo: the API key is required');
     }
     return key;
   }

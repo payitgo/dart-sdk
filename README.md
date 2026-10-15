@@ -24,7 +24,7 @@ import 'package:payitgo/payitgo.dart';
 final payitgo = Payitgo(
   Platform.environment['PAYITGO_KEY']!,
   baseUrl: Platform.environment['PAYITGO_BASE_URL']!,
-  webhookSecret: Platform.environment['PAYITGO_WEBHOOK_SECRET'], // "whsec_…": see Webhooks (IPN) below
+  webhookSecret: Platform.environment['PAYITGO_WEBHOOK_SECRET'], // the signing secret: see Webhooks (IPN) below
 );
 
 // 1. Create a payment and send the customer to the checkout page (or return the
@@ -54,6 +54,9 @@ Future<Response> ipn(Request request) async {
   return Response.ok('');
 }
 ```
+
+A key is a test key or a live key, and does not say which (the dashboard shows a Test or
+Live badge next to it): `await payitgo.isLive()` asks payitgo, once.
 
 ## On your server: prices in other currencies
 
@@ -121,8 +124,8 @@ final payment = await payitgo.payments.simulate('TEST-2', 'partially_paid');
 
 Outcomes (`Payments.simulationOutcomes`): `confirmed`, `overpaid`, `partially_paid`,
 `underpaid`, `expired`, `failed`, `wrong_asset`, `paid_late`. Simulated deposits have
-`simulated` true and a `txId` starting with `sim_`. A live key gets `400`; a payment whose
-simulation is still running, `409`.
+`simulated` true; their `txId` names no transaction on any chain. A live key gets `400`; a
+payment whose simulation is still running, `409`.
 
 ## On your server: Webhooks (IPN)
 
@@ -147,8 +150,8 @@ final shop = Payitgo(key, baseUrl: baseUrl, webhookUrl: 'https://shop.example/or
 A storefront's key cannot set the account's URL (`403`): pass `webhookUrl` on its payments
 instead. Payout events always go to the webhook's URL.
 
-**The signing secret.** Every notification of a mode is signed with that mode's secret
-(`whsec_…`), whichever URL it goes to. Copy it from the dashboard or read it with
+**The signing secret.** Every notification of a mode is signed with that mode's secret,
+whichever URL it goes to. Copy it from the dashboard or read it with
 `(await payitgo.webhooks.get()).secret`, and give it to the client once:
 
 ```dart
@@ -211,7 +214,7 @@ plays an outcome with no coins, for "simulate" buttons on your test screens; `wa
 ([Test mode](https://api.payitgo.co/docs/testing)).
 
 The app only shows status; your backend still fulfils orders from the
-`payment.confirmed` webhook. Start with your test key (`sk_test_…`), where you
+`payment.confirmed` webhook. Start with a test key, where you
 [simulate](#on-your-server-test-mode) what the customer pays.
 
 ## API
@@ -220,10 +223,10 @@ The app only shows status; your backend still fulfils orders from the
 final payitgo = Payitgo(apiKey,
     baseUrl: 'https://api.example.com',  // or the package's default address
     maxRetries: 2, timeout: Duration(seconds: 30),
-    webhookSecret: 'whsec_…',            // for webhooks.constructEvent
+    webhookSecret: secret,               // for webhooks.constructEvent
     webhookUrl: 'https://…');            // default webhookUrl of payments.create
 
-payitgo.livemode;                                          // false for sk_test_ keys
+await payitgo.isLive();                                    // false for a test key (asks payitgo once)
 await payitgo.payments.create(orderId: …, amountUsd: …, token: …, description: …, metadata: {…},
                             customerEmail: …, successUrl: …, cancelUrl: …, webhookUrl: …, simulate: …);
 await payitgo.payments.create(orderId: …, priceAmount: …, priceCurrency: …, …); // priced in another currency

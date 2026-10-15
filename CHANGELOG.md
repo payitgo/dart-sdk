@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+- Breaking: `Future<bool> isLive()` in place of the `livemode` field of
+  `Payitgo`, because a key does not say its mode. `isLive()` asks payitgo
+  (`GET /v1/webhook`'s `livemode`) the first time and keeps the answer for
+  the client's life.
+- The client takes any non-empty key: an empty one throws `ArgumentError`
+  (`payitgo: the API key is required`).
+
 ## 0.2.1
 
 - Prices in other currencies: `payments.create` takes `priceAmount` and
