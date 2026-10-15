@@ -8,7 +8,7 @@
 // Run it with your test key and your webhook's signing secret (from the
 // dashboard, or `(await payitgo.webhooks.get()).secret`):
 //
-//   PAYITGO_KEY=sk_test_… PAYITGO_WEBHOOK_SECRET=whsec_… dart run example/main.dart
+//   PAYITGO_KEY=<test key> PAYITGO_WEBHOOK_SECRET=<signing secret> dart run example/main.dart
 //
 // For the webhook to reach your machine, expose port 8080 (with ngrok, say)
 // and set that public URL as PAYITGO_WEBHOOK_URL.
@@ -36,7 +36,7 @@ Future<void> main() async {
       description: '2 x Acme T-shirt',
       token: 'USDT_TRC20', // leave it out to let the customer choose the coin
       successUrl: 'https://shop.example/thanks',
-      simulate: payitgo.livemode ? null : 'confirmed',
+      simulate: await payitgo.isLive() ? null : 'confirmed',
     );
   } on PayitgoException catch (e) {
     stderr.writeln('could not create the payment: $e');

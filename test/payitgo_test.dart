@@ -6,12 +6,17 @@ import 'package:http/testing.dart';
 import 'package:payitgo/payitgo.dart';
 import 'package:test/test.dart';
 
+const key = '8334dfeae25b9b200b75995e6e55cf8c3602120c1920bfef7a4ff8900b620881';
+
 // Signed by the gateway's own signer.
-const secret = 'whsec_test_secret';
+const secret =
+    '05bd6b428158318cc38756fa34aa60795af0fc5d9a316dcc9b060c8ca1863fc3';
 const header =
-    't=1760000000,v1=6abd292fdf2ecc51779c161f5d4be2d47236f7a43fbaa9dd7093303904b91a7b';
+    't=1760000000,v1=75eb20fb34bccab4b9121285930b076e5e60ccad0a2542bd76eb56d89744faed';
 const body =
-    '{"id":"evt_test_123","type":"payment.confirmed","livemode":false,"created_at":"2026-10-09T12:00:00Z","data":{"id":"pay_123","order_id":"ORD-1","status":"confirmed","usd_amount":"10"}}';
+    '{"id":"b8e1f80bd70ae0784c7855a4","type":"payment.confirmed","livemode":false,"created_at":"2026-10-09T12:00:00Z","data":{"id":"040ffd5925d40e11c67b7238","order_id":"ORD-1","status":"confirmed","usd_amount":"10"}}';
+const otherSecret =
+    'bd4106123e659e259c401119d0c7ef0a221df306a5a414b6fb6a579499962d26';
 
 String sign(String secret, int t, String body) =>
     't=$t,v1=${Hmac(sha256, utf8.encode(secret)).convert(utf8.encode('$t.$body'))}';
@@ -19,7 +24,8 @@ String sign(String secret, int t, String body) =>
 const webhook = {
   'livemode': false,
   'url': 'https://shop.example/payitgo/ipn',
-  'secret': 'whsec_abc',
+  'secret':
+      'abababababababababababababababababababababababababababababababab',
   'created_at': '2026-10-10T09:00:00Z',
   'updated_at': '2026-10-10T09:05:00Z',
 };
@@ -93,7 +99,8 @@ const simulated = {
   'rate_locked': '1',
   'deposits': [
     {
-      'tx_id': 'sim_pay_2_1791817211348_0',
+      'tx_id':
+          '8de0120d502929788a71a7b7cf60e5ef3c095cdbb05cd8a7ddabc0bc9ffa9582',
       'token': 'USDT_TRC20',
       'chain': 'tron',
       'amount': '20',
@@ -127,7 +134,7 @@ final priced = {
 /// payment), without any network.
 Payitgo fakeGateway(List<http.Request> requests, int status,
         [Object? reply, String? webhookUrl]) =>
-    Payitgo('sk_test_abc',
+    Payitgo(key,
         baseUrl: 'https://gateway.test/',
         maxRetries: 0,
         webhookUrl: webhookUrl, httpClient: MockClient((req) async {
@@ -151,7 +158,7 @@ void main() {
           Webhook.constructEvent(utf8.encode(body), header, secret,
                   tolerance: Duration.zero)
               .id,
-          'evt_test_123');
+          'b8e1f80bd70ae0784c7855a4');
     });
     test('rejects a changed body, the wrong secret, a missing header', () {
       expect(
@@ -160,7 +167,7 @@ void main() {
               tolerance: Duration.zero),
           throwsA(isA<SignatureVerificationException>()));
       expect(
-          () => Webhook.constructEvent(body, header, 'whsec_other',
+          () => Webhook.constructEvent(body, header, otherSecret,
               tolerance: Duration.zero),
           throwsA(isA<SignatureVerificationException>()));
       expect(() => Webhook.constructEvent(body, null, secret),
@@ -171,7 +178,7 @@ void main() {
           throwsA(isA<SignatureVerificationException>()));
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       expect(Webhook.constructEvent(body, sign(secret, now, body), secret).id,
-          'evt_test_123');
+          'b8e1f80bd70ae0784c7855a4');
     });
   });
 
@@ -184,12 +191,50 @@ void main() {
       final w = await payitgo.webhooks.get();
       expect(requests.single.method, 'GET');
       expect(requests.single.url.toString(), 'https://gateway.test/v1/webhook');
-      expect(requests.single.headers['Authorization'], 'Bearer sk_test_abc');
+      expect(requests.single.headers['Authorization'], 'Bearer $key');
       expect(requests.single.body, isEmpty);
       expect(w.url, 'https://shop.example/payitgo/ipn');
-      expect(w.secret, 'whsec_abc');
+      expect(w.secret, 'ab' * 32);
       expect(w.livemode, isFalse);
       expect(w.updatedAt, DateTime.utc(2026, 10, 10, 9, 5));
+    });
+
+    for (final live in [true, false]) {
+      test('isLive asks payitgo once (${live ? 'a live' : 'a test'} key)',
+          () async {
+        final payitgo = fakeGateway(requests, 200, {
+          'webhook': {...webhook, 'livemode': live}
+        });
+        expect(await payitgo.isLive(), live);
+        expect(await payitgo.isLive(), live);
+        // Asked once, with the key; the second call does not ask again.
+        expect(requests.single.method, 'GET');
+        expect(requests.single.url.toString(), 'https://gateway.test/v1/webhook');
+        expect(requests.single.headers['Authorization'], 'Bearer $key');
+      });
+    }
+
+    test('isLive: a key payitgo refuses throws, and is asked again', () async {
+      var status = 401;
+      final payitgo = Payitgo(key,
+          baseUrl: 'https://gateway.test',
+          maxRetries: 0, httpClient: MockClient((req) async {
+        requests.add(req);
+        return http.Response(
+            jsonEncode(status == 200
+                ? {'webhook': webhook}
+                : {'error': 'invalid API key'}),
+            status,
+            headers: {'content-type': 'application/json'});
+      }));
+      await expectLater(
+          payitgo.isLive(),
+          throwsA(isA<PayitgoException>()
+              .having((e) => e.status, 'status', 401)
+              .having((e) => e.message, 'message', 'invalid API key')));
+      status = 200;
+      expect(await payitgo.isLive(), isFalse);
+      expect(requests, hasLength(2));
     });
 
     test('set puts the URL', () async {
@@ -212,7 +257,7 @@ void main() {
       expect(requests.single.method, 'DELETE');
       expect(requests.single.url.path, '/v1/webhook');
       expect(w.url, isNull);
-      expect(w.secret, 'whsec_abc');
+      expect(w.secret, 'ab' * 32);
     });
 
     test('test queues a ping', () async {
@@ -220,7 +265,7 @@ void main() {
       final d = await payitgo.webhooks.test();
       expect(requests.single.method, 'POST');
       expect(requests.single.url.path, '/v1/webhook/test');
-      expect(requests.single.headers['Authorization'], 'Bearer sk_test_abc');
+      expect(requests.single.headers['Authorization'], 'Bearer $key');
       expect(d.eventType, 'ping');
       expect(d.target, 'account');
       expect(d.status, 'pending');
@@ -322,7 +367,7 @@ void main() {
       expect(requests.single.method, 'POST');
       expect(requests.single.url.toString(),
           'https://gateway.test/v1/payments/pay_1/token');
-      expect(requests.single.headers['Authorization'], 'Bearer sk_test_abc');
+      expect(requests.single.headers['Authorization'], 'Bearer $key');
       expect(requests.single.headers['Content-Type'],
           startsWith('application/json'));
       expect(jsonDecode(requests.single.body), {'token': 'XRP'});
@@ -369,7 +414,7 @@ void main() {
       expect(requests.single.method, 'POST');
       expect(requests.single.url.toString(),
           'https://gateway.test/v1/payments/pay_2/simulate');
-      expect(requests.single.headers['Authorization'], 'Bearer sk_test_abc');
+      expect(requests.single.headers['Authorization'], 'Bearer $key');
       expect(requests.single.headers['Content-Type'],
           startsWith('application/json'));
       expect(jsonDecode(requests.single.body), {'outcome': 'confirmed'});
@@ -377,7 +422,7 @@ void main() {
       expect((p.simulation!.outcome, p.simulation!.state),
           ('confirmed', 'running'));
       expect(p.deposits.single.simulated, isTrue);
-      expect(p.deposits.single.txId, startsWith('sim_'));
+      expect(p.deposits.single.txId, hasLength(64));
       expect(Payment(chosen).simulation, isNull);
       expect(Deposit({'tx_id': 'c19240'}).simulated, isFalse);
     });
@@ -459,19 +504,19 @@ void main() {
   group('client webhooks.constructEvent', () {
     test('uses the client\'s webhookSecret', () {
       final payitgo =
-          Payitgo('sk_test_abc', baseUrl: 'http://x', webhookSecret: secret);
+          Payitgo(key, baseUrl: 'http://x', webhookSecret: secret);
       expect(
           payitgo.webhooks
               .constructEvent(body, header, tolerance: Duration.zero)
               .id,
-          'evt_test_123');
+          'b8e1f80bd70ae0784c7855a4');
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       expect(payitgo.webhooks.constructEvent(body, sign(secret, now, body)).id,
-          'evt_test_123');
+          'b8e1f80bd70ae0784c7855a4');
     });
     test('an explicit secret wins', () {
-      final payitgo = Payitgo('sk_test_abc',
-          baseUrl: 'http://x', webhookSecret: 'whsec_other');
+      final payitgo =
+          Payitgo(key, baseUrl: 'http://x', webhookSecret: otherSecret);
       expect(
           () => payitgo.webhooks
               .constructEvent(body, header, tolerance: Duration.zero),
@@ -481,10 +526,10 @@ void main() {
               .constructEvent(body, header,
                   secret: secret, tolerance: Duration.zero)
               .id,
-          'evt_test_123');
+          'b8e1f80bd70ae0784c7855a4');
     });
     test('throws without any secret', () {
-      final payitgo = Payitgo('sk_test_abc', baseUrl: 'http://x');
+      final payitgo = Payitgo(key, baseUrl: 'http://x');
       expect(
           () => payitgo.webhooks.constructEvent(body, header),
           throwsA(isA<SignatureVerificationException>().having(
@@ -573,7 +618,7 @@ void main() {
     test('leaves an http.Client you passed open', () {
       final client = _Closable();
       final payitgo =
-          Payitgo('sk_test_abc', baseUrl: 'http://x', httpClient: client);
+          Payitgo(key, baseUrl: 'http://x', httpClient: client);
       payitgo.checkout.close();
       payitgo.close();
       PayitgoCheckout(baseUrl: 'http://x', httpClient: client).close();
@@ -582,7 +627,7 @@ void main() {
 
     test('closes the one client the SDK made, which checkout shares', () async {
       final payitgo =
-          Payitgo('sk_test_abc', baseUrl: 'http://x', maxRetries: 0);
+          Payitgo(key, baseUrl: 'http://x', maxRetries: 0);
       payitgo.close();
       final closed = isA<PayitgoException>()
           .having((e) => e.status, 'status', 0)
@@ -596,7 +641,7 @@ void main() {
     test('the checkout of a Payitgo does not close the shared client',
         () async {
       final payitgo =
-          Payitgo('sk_test_abc', baseUrl: 'http://127.0.0.1:9', maxRetries: 0);
+          Payitgo(key, baseUrl: 'http://127.0.0.1:9', maxRetries: 0);
       payitgo.checkout.close();
       // Still open: the request goes out (and is refused by the closed port, not
       // by a closed client).
@@ -691,11 +736,12 @@ void main() {
   });
 
   test('client checks the key and the base URL', () {
-    expect(() => Payitgo('pk_123', baseUrl: 'http://x'), throwsArgumentError);
-    expect(() => Payitgo('sk_test_abc', baseUrl: ''), throwsArgumentError);
+    final noKey = throwsA(isA<ArgumentError>().having(
+        (e) => e.message, 'message', 'payitgo: the API key is required'));
+    expect(() => Payitgo('', baseUrl: 'http://x'), noKey);
+    expect(() => Payitgo('  ', baseUrl: 'http://x'), noKey);
+    expect(() => Payitgo(key, baseUrl: ''), throwsArgumentError);
     expect(() => PayitgoCheckout(baseUrl: ''), throwsArgumentError);
-    expect(Payitgo('sk_live_abc', baseUrl: 'http://x').livemode, isTrue);
-    expect(Payitgo('sk_test_abc', baseUrl: 'http://x').livemode, isFalse);
   });
 }
 
