@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1
+
+- React checkout widget: @payitgo/react joins the SDK releases
+- Coin notes say how long a payment takes; native coins on their own network
+
 ## 0.3.0
 
 - Breaking: `Future<bool> isLive()` in place of the `livemode` field of
