@@ -68,7 +68,7 @@ const chosen = {
   'deposits': [],
   'expires_at': '2026-10-10T12:15:00Z',
   'created_at': '2026-10-10T12:00:00Z',
-  'network_fee_note': 'Near-zero fees. Include destination tag — required.',
+  'network_fee_note': 'Final in seconds. Include the destination tag: it is required.',
   'qr_payload': 'rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe',
   'checkout_token': 'ct_abc',
   'checkout_url': 'https://pay.example/ct_abc',
@@ -113,7 +113,7 @@ const simulated = {
   ],
   'expires_at': '2026-10-10T12:15:00Z',
   'created_at': '2026-10-10T12:00:00Z',
-  'network_fee_note': 'Near-zero fees on Tron. Fastest settlement.',
+  'network_fee_note': 'Final in about a minute.',
   'qr_payload': 'TPk2bpQqWRpXiaUHS9SXnZCDgvwrsuJ71o',
 };
 
