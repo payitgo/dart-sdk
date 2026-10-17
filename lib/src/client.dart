@@ -59,6 +59,9 @@ class Deposit {
   /// coin, the first input's): where a refund would go.
   String? get from => raw['from'] as String?;
 
+  /// The address it was sent to: the payment's, or a previous coin's.
+  String? get to => raw['to'] as String?;
+
   /// The block (on XRP, the ledger) that holds it.
   int? get block => raw['block'] as int?;
 
@@ -89,6 +92,21 @@ class Simulation {
   String get state => raw['state'] as String;
 }
 
+/// A coin chosen for a payment before its current one, when the customer
+/// changed it. Its address is still watched.
+class PreviousCoin {
+  PreviousCoin(this.raw);
+
+  final Map<String, dynamic> raw;
+
+  String get token => raw['token'] as String;
+  String get chain => raw['chain'] as String;
+  String get depositAddress => raw['deposit_address'] as String;
+  int? get destinationTag => raw['destination_tag'] as int?;
+  String get cryptoAmount => raw['crypto_amount'] as String;
+  String get rateLocked => raw['rate_locked'] as String;
+}
+
 DateTime? _date(Object? v) => v == null ? null : DateTime.parse(v as String);
 
 /// A payment, as the API returns it. Amounts are decimal strings; [raw] holds every field.
@@ -113,11 +131,18 @@ class Payment {
       ? null
       : Simulation(raw['simulation'] as Map<String, dynamic>);
 
-  /// Empty until the customer chooses the coin, from [tokenOptions].
+  /// Empty until the customer chooses the coin, from [tokenOptions], which
+  /// stay while the coin can still change.
   String get token => raw['token'] as String;
   List<TokenInfo> get tokenOptions => [
         for (final t in (raw['token_options'] as List?) ?? const [])
           TokenInfo(t as Map<String, dynamic>)
+      ];
+
+  /// The coins chosen before [token], when the customer changed it.
+  List<PreviousCoin> get previousCoins => [
+        for (final c in (raw['previous_coins'] as List?) ?? const [])
+          PreviousCoin(c as Map<String, dynamic>)
       ];
   String get chain => raw['chain'] as String;
   String get depositAddress => raw['deposit_address'] as String;
@@ -536,8 +561,8 @@ class Payments {
   /// it on your own page: one of its [Payment.tokenOptions]. [id] is the
   /// payment's id or your order id. Returns the whole payment, now
   /// with its address, amount, locked rate and a deadline 15 minutes away.
-  /// The coin is chosen once: choosing again is a [PayitgoException] with
-  /// status 409.
+  /// Another coin changes it while the payment still has [Payment.tokenOptions];
+  /// once it can no longer change, a [PayitgoException] with status 409.
   Future<Payment> selectToken(String id, String token) async => Payment(await _t
       .request('POST', '/v1/payments/${Uri.encodeComponent(id)}/token',
           body: {'token': token}));
