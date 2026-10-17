@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0
+
+- The customer can change the coin: previousCoins, deposit to, and the widget's Change coin button
+
 ## 0.3.1
 
 - React checkout widget: @payitgo/react joins the SDK releases
