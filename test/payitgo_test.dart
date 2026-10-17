@@ -394,7 +394,7 @@ void main() {
     });
 
     test('a coin already chosen is a 409', () async {
-      const message = 'the coin for this payment has already been chosen';
+      const message = 'the coin for this payment can no longer be changed';
       final payitgo = fakeGateway(requests, 409, {'error': message});
       await expectLater(
           payitgo.payments.selectToken('pay_1', 'XRP'),

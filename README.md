@@ -102,9 +102,10 @@ final chosen = await payitgo.payments.selectToken(payment.id, 'USDT_TRC20'); // 
 // render chosen.depositAddress, chosen.cryptoAmount, chosen.qrPayload, chosen.expiresAt
 ```
 
-The coin is chosen once: choosing again is a `409` (`payments.retrieve` then returns the
-payment with its coin). A coin outside `tokenOptions`, or a payment that can no longer be
-paid, is a `400`.
+The customer can change the coin while the payment still has `tokenOptions` (nothing has
+arrived yet): call `payments.selectToken` again with another. Once it can no longer change, it is a `409`
+(`payments.retrieve` then returns the payment with its coin). A coin outside `tokenOptions`, or a
+payment that can no longer be paid, is a `400`.
 
 ## On your server: test mode
 
