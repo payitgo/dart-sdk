@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0
+
+- Four new coins, and every coin comes with its ticker and logo
+
 ## 0.4.0
 
 - The customer can change the coin: previousCoins, deposit to, and the widget's Change coin button
