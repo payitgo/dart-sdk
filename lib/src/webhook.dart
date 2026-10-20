@@ -12,13 +12,15 @@ class SignatureVerificationException implements Exception {
   String toString() => 'SignatureVerificationException: $message';
 }
 
-/// A webhook event.
+/// A webhook event: a verified notification, or one replayed by
+/// `payitgo.events.list` (the same body).
 class WebhookEvent {
   WebhookEvent(this.raw);
 
   final Map<String, dynamic> raw;
 
-  /// The event id: the same when the event is delivered again.
+  /// The event id: the same however often the event is delivered, and when
+  /// it is replayed. Handle each id once.
   String get id => raw['id'] as String;
   String get type => raw['type'] as String;
   bool get livemode => raw['livemode'] as bool? ?? false;
@@ -26,11 +28,13 @@ class WebhookEvent {
 
   /// The payment (payment.* events), the settlement (settlement.*), the
   /// payout (payout.*), the payout batch (payout_batch.*: `PayoutBatch`),
-  /// the payout batch's payment (payout_item.*: `PayoutItem`), the payout
-  /// wallet's withdrawal (payout_wallet.withdrawn: `PayoutWithdrawal`), the
-  /// payout schedule (payout_schedule.run: `PayoutSchedule`), the schedule
-  /// and its shortfall (payout_schedule.funding_needed:
-  /// `PayoutScheduleFunding`), or `{"message": "pong"}` (ping).
+  /// the payout batch's payment (every payout_item.* event, processing and
+  /// returned included: `PayoutItem`), the payout wallet's withdrawal
+  /// (payout_wallet.withdrawn and payout_wallet.withdrawal_failed:
+  /// `PayoutWithdrawal`), the payout schedule (payout_schedule.run:
+  /// `PayoutSchedule`), the schedule and its shortfall
+  /// (payout_schedule.funding_needed: `PayoutScheduleFunding`), or
+  /// `{"message": "pong"}` (ping).
   Map<String, dynamic> get data => (raw['data'] as Map).cast<String, dynamic>();
 }
 
