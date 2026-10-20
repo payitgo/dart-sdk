@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.6.0
+
+- Mass payouts: pay your own clients from your payout wallet.
+  - `payitgo.payouts`: payout requests sent one by one as your clients ask
+    (`request`, safe to retry on its `reference`), your open list with what
+    sending it needs of the wallet (`inbox`), `send` (all valid requests, or
+    some `ids`), `retrieve`, `retrieveByReference`, `cancel`, and `quote`
+    (prices up to 100 payments, nothing kept).
+  - `payitgo.payoutBatches`: `create`, `list`, `retrieve`, `items`,
+    `addItems`, `quote`, `submit` and `cancel`.
+  - `payitgo.payoutWallets`: `list`, and `simulateTopUp` for test keys.
+  - Typed models: `PayoutItemInput`, `PayoutItem`, `PayoutBatch`,
+    `PayoutInbox`, `PayoutQuoteResult`, `PayoutWallet`, `PayoutWithdrawal`
+    and their parts; amounts are decimal strings, as everywhere.
+  - Claim links: with `claim: true` or `claimAssets` (other coins to offer)
+    and no address, the recipient chooses the coin and the address; an
+    `email` gets the link. Payments carry `claim` (`PayoutClaim`: `url`, `expiresAt`,
+    `claimedAt`, …), statuses `claimable` and `expired`, and batch counts
+    of both.
+  - Converted payments: `convert` and `convertFrom` on
+    `payoutBatches.create` and `payouts.quote` pay every payment in another
+    coin from the wallet's coin, converted on its way. Payments carry
+    `convert` (`PayoutConversion`: `to`, `toAmount`, `estimate`,
+    `amountOut`) and `conversionFee`; batches `convert` and `convertFrom`.
+  - Schedules (set up in the dashboard): `PayoutSchedule` and
+    `PayoutScheduleFunding` for their webhooks; batch `source` `schedule`.
+- `Webhooks.events` adds the `payout_batch.*`, `payout_item.*` (with
+  `payout_item.claimed` and `payout_item.claim_expired`),
+  `payout_wallet.withdrawn`, `payout_schedule.run` and
+  `payout_schedule.funding_needed` events.
+- `example/payouts.dart` pays a client in test mode.
+
 ## 0.5.0
 
 - Four new coins, and every coin comes with its ticker and logo
