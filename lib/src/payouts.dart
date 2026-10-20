@@ -154,6 +154,14 @@ class PayoutClaim {
   /// The link, to share with the recipient.
   String? get url => raw['url'] as String?;
 
+  /// A link without an email: the 6 digits its recipient enters to claim
+  /// it. Give it another way than the link (a call, a text message), so
+  /// the link alone pays no one.
+  String? get pin => raw['pin'] as String?;
+
+  /// 5 wrong PINs were entered: a new PIN from the dashboard unlocks it.
+  bool get pinLocked => raw['pin_locked'] as bool? ?? false;
+
   /// What it was funded with when its recipient chose another coin (paid
   /// at the same dollar value).
   String? get fundedAsset => raw['funded_asset'] as String?;
