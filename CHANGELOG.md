@@ -26,9 +26,29 @@
     `amountOut`) and `conversionFee`; batches `convert` and `convertFrom`.
   - Schedules (set up in the dashboard): `PayoutSchedule` and
     `PayoutScheduleFunding` for their webhooks; batch `source` `schedule`.
+  - `payouts.remove(ids)` takes up to 1000 payout requests out of the
+    list at once: a `PayoutRemoveResult` per id, its `item` or its `error`
+    (a `PayitgoException`). An empty `ids` throws an `ArgumentError`.
+  - `payouts.list(status:, updatedSince:, cursor:, limit:)` lists every
+    payment of the mode by last change, oldest first, to resync: a
+    `PayoutPage` (`items`, `hasMore`, `nextCursor`).
+  - `payouts.cancel` is safe to retry: a payment canceled already comes
+    back as it is. A removed request keeps its record, without a batch.
+    `payouts.retrieveByReference` falls back to the latest payment that
+    gave the reference back; an empty reference throws an `ArgumentError`.
+  - Payments carry `cancelReason` (`removed`, `canceled`,
+    `batch_canceled`, `rejected`, `invalid`), `cancelNote`, `canceledBy`,
+    `canceledAt`, `members` and `webhookUrl`; `batchId` is null for a
+    request removed from the list. Withdrawals carry `failReason`.
+  - `webhookUrl` on `payouts.request` and `PayoutItemInput`: a payment's
+    events go there, before its batch's `webhookUrl` and the webhook's URL.
+- `payitgo.events.list(types:, after:, createdAfter:, limit:)` replays the
+  mode's events as their webhooks carried them: an `EventPage` of
+  `WebhookEvent`s and `hasMore`.
 - `Webhooks.events` adds the `payout_batch.*`, `payout_item.*` (with
-  `payout_item.claimed` and `payout_item.claim_expired`),
-  `payout_wallet.withdrawn`, `payout_schedule.run` and
+  `payout_item.processing`, `payout_item.returned`, `payout_item.claimed`
+  and `payout_item.claim_expired`), `payout_wallet.withdrawn`,
+  `payout_wallet.withdrawal_failed`, `payout_schedule.run` and
   `payout_schedule.funding_needed` events.
 - `example/payouts.dart` pays a client in test mode.
 

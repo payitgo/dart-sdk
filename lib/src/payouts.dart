@@ -41,6 +41,7 @@ class PayoutItemInput {
     this.note,
     this.claim,
     this.claimAssets,
+    this.webhookUrl,
   });
 
   /// The coin, one of the payout coins: `USDT_TRC20`, `USDT_BEP20`, `TRX`,
@@ -79,6 +80,11 @@ class PayoutItemInput {
   /// dollar value; giving them makes it a claim link too.
   final List<String>? claimAssets;
 
+  /// An `https://` URL on a public host: this payment's events go there
+  /// instead of its batch's webhook URL or your webhook's URL. Payments in
+  /// one call may name at most 10 different ones.
+  final String? webhookUrl;
+
   Map<String, dynamic> toJson() => {
         'asset': asset,
         if (address != null) 'address': address,
@@ -90,6 +96,7 @@ class PayoutItemInput {
         if (note != null) 'note': note,
         if (claim != null) 'claim': claim,
         if (claimAssets != null) 'claim_assets': claimAssets,
+        if (webhookUrl != null) 'webhook_url': webhookUrl,
       };
 }
 
@@ -204,7 +211,9 @@ class PayoutItem {
   String? get merchantId => raw['merchant_id'] as String?;
   bool get livemode => raw['livemode'] as bool? ?? false;
 
-  /// Its batch: your open list of payout requests until it is sent.
+  /// Its batch: your open list of payout requests until it is sent. Null
+  /// on a quote's payments, and for a payout request removed from the list
+  /// (its record stays: status canceled, [cancelReason] removed).
   String? get batchId => raw['batch_id'] as String?;
 
   /// Your id for it, unique in its mode.
@@ -272,6 +281,31 @@ class PayoutItem {
   /// The transaction on the block explorer; live only.
   String? get explorerUrl => raw['explorer_url'] as String?;
   String? get failReason => raw['fail_reason'] as String?;
+
+  /// Why it was canceled: removed (taken out of your list of payout
+  /// requests), canceled (the payment alone, by your team or a key),
+  /// batch_canceled (its batch was canceled), rejected (its batch was
+  /// rejected: [cancelNote] says why) or invalid (no longer payable when
+  /// its batch was submitted or funded: [errors] say why). Null unless
+  /// canceled.
+  String? get cancelReason => raw['cancel_reason'] as String?;
+
+  /// The rejection's reason, when [cancelReason] is rejected.
+  String? get cancelNote => raw['cancel_note'] as String?;
+
+  /// Who canceled it: a team member's id, an API key's id, or `system`
+  /// (payitgo itself).
+  String? get canceledBy => raw['canceled_by'] as String?;
+  DateTime? get canceledAt => _date(raw['canceled_at']);
+
+  /// The email of the team member named in [canceledBy], by id, as it was
+  /// when they acted; empty when none is named.
+  Map<String, String> get members =>
+      (raw['members'] as Map?)?.cast<String, String>() ?? const {};
+
+  /// Where its events go instead of its batch's webhook URL or your
+  /// webhook's URL.
+  String? get webhookUrl => raw['webhook_url'] as String?;
 
   /// A claim link's state; null for a payment to an address you gave.
   PayoutClaim? get claim => raw['claim'] == null
@@ -489,6 +523,48 @@ class PayoutBatchList {
   final int offset;
 }
 
+/// One page of [Payouts.list]: [items], oldest change first. While
+/// [hasMore], read on with [nextCursor]; once it is false, keep
+/// [nextCursor] to read what changes next time.
+class PayoutPage {
+  PayoutPage(Map<String, dynamic> json)
+      : items = _each(json['items'], PayoutItem.new),
+        hasMore = json['has_more'] as bool? ?? false,
+        nextCursor = json['next_cursor'] as String?;
+
+  final List<PayoutItem> items;
+  final bool hasMore;
+
+  /// Null when the page is empty: keep the one you had.
+  final String? nextCursor;
+}
+
+/// What [Payouts.remove] did with one id: [item] when the request is out
+/// of the list (removed now, or before), or [error] when it is not.
+class PayoutRemoveResult {
+  PayoutRemoveResult(this.raw);
+
+  final Map<String, dynamic> raw;
+
+  String get id => raw['id'] as String;
+
+  /// The request, status canceled, [PayoutItem.cancelReason] removed.
+  PayoutItem? get item => raw['item'] == null
+      ? null
+      : PayoutItem(raw['item'] as Map<String, dynamic>);
+
+  /// Why it was not removed, as a call for this id alone would have
+  /// thrown it: 404 not found, or 409 (sent from the list already: cancel
+  /// it with [Payouts.cancel]; or the payment has ended).
+  PayitgoException? get error {
+    final e = raw['error'] as Map?;
+    return e == null
+        ? null
+        : PayitgoException(
+            e['message'] as String? ?? '', e['status'] as int? ?? 0);
+  }
+}
+
 /// One page of a batch's payments.
 class PayoutItemList {
   PayoutItemList(Map<String, dynamic> json)
@@ -616,7 +692,8 @@ class PayoutWallet {
 }
 
 /// A payout wallet's coin sent back to one of your payout addresses: the
-/// data of a `payout_wallet.withdrawn` event.
+/// data of a `payout_wallet.withdrawn` or
+/// `payout_wallet.withdrawal_failed` event.
 class PayoutWithdrawal {
   PayoutWithdrawal(this.raw);
 
@@ -641,6 +718,9 @@ class PayoutWithdrawal {
   String get status => raw['status'] as String;
   String? get txId => raw['tx_id'] as String?;
   String? get explorerUrl => raw['explorer_url'] as String?;
+
+  /// Why a failed withdrawal failed; its money stays in the wallet.
+  String? get failReason => raw['fail_reason'] as String?;
   String get requestedBy => raw['requested_by'] as String? ?? '';
   DateTime get createdAt => DateTime.parse(raw['created_at'] as String);
   DateTime get updatedAt => DateTime.parse(raw['updated_at'] as String);
@@ -705,7 +785,10 @@ class Payouts {
   /// that payment (200 instead of 201). An invalid request is kept too,
   /// with [PayoutItem.errors] saying why, and is never sent. The other
   /// parameters are those of [PayoutItemInput]: leave [address] out for a
-  /// claim link ([claim] or [claimAssets]).
+  /// claim link ([claim] or [claimAssets]). [webhookUrl] (https) gets this
+  /// payment's events instead of your webhook's URL, and stays with it
+  /// when it is sent in a batch; the client's `webhookUrl` is not used
+  /// here.
   Future<PayoutItem> request({
     required String reference,
     required String asset,
@@ -717,6 +800,7 @@ class Payouts {
     String? note,
     bool? claim,
     List<String>? claimAssets,
+    String? webhookUrl,
   }) async =>
       _item(await _t.request('POST', '/v1/payouts',
           body: PayoutItemInput(
@@ -729,17 +813,48 @@ class Payouts {
                   email: email,
                   note: note,
                   claim: claim,
-                  claimAssets: claimAssets)
+                  claimAssets: claimAssets,
+                  webhookUrl: webhookUrl)
               .toJson()));
 
   /// A payment by its id: a payout request, or any batch's row.
   Future<PayoutItem> retrieve(String id) async =>
       _item(await _t.request('GET', '/v1/payouts/${Uri.encodeComponent(id)}'));
 
-  /// A payment by your reference.
-  Future<PayoutItem> retrieveByReference(String reference) async =>
-      _item(await _t.request(
-          'GET', '/v1/payouts${_query({'reference': reference})}'));
+  /// A payment by your reference: the one carrying it, or else the latest
+  /// payment that gave it back (canceled, failed or expired, with it as
+  /// [PayoutItem.releasedReference]): what became of a request sent with
+  /// it. An empty [reference] throws an ArgumentError and sends nothing.
+  Future<PayoutItem> retrieveByReference(String reference) async {
+    if (reference.isEmpty) {
+      throw ArgumentError('payitgo: reference is required');
+    }
+    return _item(await _t.request(
+        'GET', '/v1/payouts${_query({'reference': reference})}'));
+  }
+
+  /// Every payment of the key's mode, whatever its batch (payout requests
+  /// in your list, removed ones, every batch's rows), oldest change first:
+  /// to bring your system back in sync, or check it is. [status] keeps
+  /// those statuses (`['sent', 'failed', 'canceled', 'expired']` for the
+  /// ended ones); [updatedSince] those changed at or after it; [cursor]
+  /// reads on from a page's [PayoutPage.nextCursor]; [limit] is 1 to 200
+  /// (50 by default). Changes of the last few seconds are left for the
+  /// next read, so a cursor never skips one.
+  Future<PayoutPage> list(
+      {List<String>? status,
+      DateTime? updatedSince,
+      String? cursor,
+      int? limit}) async {
+    final q = <String, String>{
+      if (status != null && status.isNotEmpty) 'status': status.join(','),
+      if (updatedSince != null)
+        'updated_since': updatedSince.toUtc().toIso8601String(),
+      if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
+      if (limit != null) 'limit': '$limit',
+    };
+    return PayoutPage(await _t.request('GET', '/v1/payouts${_query(q)}'));
+  }
 
   /// Your open payout requests, what sending the valid ones takes of each
   /// coin against what the wallet can spend, and one page of them.
@@ -764,10 +879,30 @@ class Payouts {
   }
 
   /// Takes a payout request out: one still in your open list is removed
-  /// (its reference free again); one sent but not on its way yet is
-  /// canceled. Either comes back with status `canceled`.
+  /// ([PayoutItem.cancelReason] removed, its reference free again, no batch
+  /// id; its record stays); one sent but not on its way yet is canceled
+  /// (cancel reason canceled). Either comes back with status `canceled`. A
+  /// payment canceled already comes back as it is: safe to retry.
   Future<PayoutItem> cancel(String id) async => _item(
       await _t.request('DELETE', '/v1/payouts/${Uri.encodeComponent(id)}'));
+
+  /// Removes 1 to 1000 payout requests still in your open list at once,
+  /// each as [cancel] would, with its own `payout_item.canceled` event (an
+  /// id given twice counts once). Returns a result per id, in the order
+  /// given: its [PayoutRemoveResult.item] (removed now, or before: safe to
+  /// retry), or its [PayoutRemoveResult.error]. A request sent from the
+  /// list already is never canceled here: use [cancel]. An empty [ids]
+  /// throws an ArgumentError and sends nothing.
+  Future<List<PayoutRemoveResult>> remove(List<String> ids) async {
+    if (ids.isEmpty) {
+      throw ArgumentError(
+          'payitgo: ids is empty: remove needs at least one payout request id');
+    }
+    return _each(
+        (await _t.request('POST', '/v1/payouts/remove',
+            body: {'ids': ids}))['results'],
+        PayoutRemoveResult.new);
+  }
 
   /// What up to 100 payments would cost, checked and priced as in a batch,
   /// without keeping anything: show a client their fee before they ask.
@@ -804,7 +939,9 @@ class PayoutBatches {
   /// `payout_batch.quoted` webhook). Send a [reference] to make it safe to
   /// retry: one used already returns that batch. [feePaidBy] is `merchant`
   /// or `recipient` (default: your payout settings'); [webhookUrl] (https)
-  /// gets its events instead of your webhook's URL. [convert] is
+  /// gets its events, and those of its payments without a
+  /// [PayoutItemInput.webhookUrl] of their own, instead of your webhook's
+  /// URL. [convert] is
   /// `same_network` (each payment from the wallet's own coin) or `convert`
   /// (every payment in another coin than [convertFrom], such as
   /// `USDT_TRC20`, paid from it, converted on its way); both default to

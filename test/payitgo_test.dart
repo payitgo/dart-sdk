@@ -200,6 +200,38 @@ const invalidItem = {
   'updated_at': '2026-10-20T09:15:02.4Z',
 };
 
+/// A payout request a team member removed from the list: its record stays,
+/// without a batch.
+const removedItem = {
+  'id': '5c7e9a1b3d5f7a9c1e3b5d7f',
+  'merchant_id': 'mch_1',
+  'livemode': false,
+  'released_reference': 'wd-88231',
+  'row': 4,
+  'recipient': {},
+  'asset': 'USDT_TRC20',
+  'chain': 'tron',
+  'address': 'TR7mNkucnhLZoJQLLJ6DR88jpLQufWxUJi',
+  'amount': '40',
+  'send_amount': '40',
+  'platform_fee': '0.5',
+  'network_fee': '1.602417',
+  'fee': '2.102417',
+  'debit': '42.102417',
+  'usd_rate': '1',
+  'amount_usd': '40',
+  'status': 'canceled',
+  'errors': [],
+  'warnings': [],
+  'cancel_reason': 'removed',
+  'canceled_by': 'usr_7',
+  'canceled_at': '2026-10-20T14:02:44.312Z',
+  'members': {'usr_7': 'finance@example.com'},
+  'webhook_url': 'https://shop.example/payouts/ipn',
+  'created_at': '2026-10-20T13:15:01.88Z',
+  'updated_at': '2026-10-20T14:02:44.312Z',
+};
+
 const usdtTotal = {
   'asset': 'USDT_TRC20',
   'ticker': 'USDT',
@@ -995,6 +1027,12 @@ void main() {
       expect(requests[1].url.queryParameters, {'reference': 'wd 1001&x'});
       expect(requests.every((r) => r.body.isEmpty), isTrue);
       expect([a.id, b.id], everyElement('8b2d4f6a1c3e5a7b9d0f2c4e'));
+      // Without a reference the same path lists payments: refused here.
+      expect(
+          () => payitgo.payouts.retrieveByReference(''),
+          throwsA(isA<ArgumentError>().having(
+              (e) => e.message, 'message', 'payitgo: reference is required')));
+      expect(requests, hasLength(2));
     });
 
     test('inbox sends its filters and returns the whole open list', () async {
@@ -1057,16 +1095,161 @@ void main() {
       expect(requests, isEmpty);
     });
 
-    test('cancel deletes the request and returns it', () async {
-      final payitgo = fakeGateway(requests, 200, {
-        'item': {...invalidItem, 'status': 'canceled'}
-      });
-      final it = await payitgo.payouts.cancel('4e6a8c0b2d4f6a1c3e5b7d9a');
+    test('cancel sends DELETE and returns the request, removed', () async {
+      final payitgo = fakeGateway(requests, 200, {'item': removedItem});
+      final it = await payitgo.payouts.cancel('5c7e9a1b3d5f7a9c1e3b5d7f');
       expect(requests.single.method, 'DELETE');
       expect(requests.single.url.toString(),
-          'https://gateway.test/v1/payouts/4e6a8c0b2d4f6a1c3e5b7d9a');
+          'https://gateway.test/v1/payouts/5c7e9a1b3d5f7a9c1e3b5d7f');
       expect(requests.single.body, isEmpty);
-      expect(it.status, 'canceled');
+      expect((it.status, it.cancelReason), ('canceled', 'removed'));
+    });
+
+    test('a removed request says why, by whom and when; it has no batch', () {
+      final it = PayoutItem(removedItem);
+      expect(it.batchId, isNull);
+      expect((it.reference, it.releasedReference), (null, 'wd-88231'));
+      expect((it.status, it.cancelReason, it.cancelNote, it.canceledBy),
+          ('canceled', 'removed', null, 'usr_7'));
+      expect(it.canceledAt, DateTime.utc(2026, 10, 20, 14, 2, 44, 312));
+      expect(it.members, {'usr_7': 'finance@example.com'});
+      expect(it.webhookUrl, 'https://shop.example/payouts/ipn');
+
+      final rejected = PayoutItem({
+        ...payoutItem,
+        'status': 'canceled',
+        'cancel_reason': 'rejected',
+        'cancel_note': 'paid by bank transfer instead',
+        'canceled_by': 'system',
+      });
+      expect(rejected.batchId, '6a1f3c8e2d9b4a7051c3e8f2');
+      expect((rejected.cancelReason, rejected.cancelNote, rejected.canceledBy),
+          ('rejected', 'paid by bank transfer instead', 'system'));
+      expect(rejected.members, isEmpty);
+
+      final sent = PayoutItem(payoutItem);
+      expect([sent.cancelReason, sent.cancelNote, sent.canceledBy],
+          everyElement(isNull));
+      expect([sent.canceledAt, sent.webhookUrl], everyElement(isNull));
+      expect(sent.members, isEmpty);
+    });
+
+    test('request and batch items send webhook_url', () async {
+      final payitgo = fakeGateway(requests, 201, {'item': removedItem});
+      await payitgo.payouts.request(
+          reference: 'wd-88231',
+          asset: 'USDT_TRC20',
+          address: 'TR7mNkucnhLZoJQLLJ6DR88jpLQufWxUJi',
+          amount: '40',
+          webhookUrl: 'https://shop.example/payouts/ipn');
+      expect(jsonDecode(requests.single.body), {
+        'asset': 'USDT_TRC20',
+        'address': 'TR7mNkucnhLZoJQLLJ6DR88jpLQufWxUJi',
+        'amount': '40',
+        'reference': 'wd-88231',
+        'webhook_url': 'https://shop.example/payouts/ipn',
+      });
+      expect(
+          const PayoutItemInput(
+                  asset: 'TRX',
+                  address: 'T1',
+                  amount: 5,
+                  webhookUrl: 'https://shop.example/a')
+              .toJson(),
+          {
+            'asset': 'TRX',
+            'address': 'T1',
+            'amount': '5',
+            'webhook_url': 'https://shop.example/a'
+          });
+    });
+
+    test('remove posts the ids and returns a result per id', () async {
+      const sent =
+          'not in your list of payout requests (sent already): cancel it with DELETE /v1/payouts/7b1d3f5a9c2e4b6d8f0a1c3e';
+      final payitgo = fakeGateway(requests, 200, {
+        'results': [
+          {'id': '5c7e9a1b3d5f7a9c1e3b5d7f', 'item': removedItem},
+          {
+            'id': '7b1d3f5a9c2e4b6d8f0a1c3e',
+            'error': {'status': 409, 'message': sent}
+          },
+          {
+            'id': 'nope',
+            'error': {'status': 404, 'message': 'not found'}
+          },
+        ]
+      });
+      final results = await payitgo.payouts.remove(
+          ['5c7e9a1b3d5f7a9c1e3b5d7f', '7b1d3f5a9c2e4b6d8f0a1c3e', 'nope']);
+      expect(requests.single.method, 'POST');
+      expect(requests.single.url.toString(),
+          'https://gateway.test/v1/payouts/remove');
+      expect(requests.single.headers['Content-Type'],
+          startsWith('application/json'));
+      expect(jsonDecode(requests.single.body), {
+        'ids': ['5c7e9a1b3d5f7a9c1e3b5d7f', '7b1d3f5a9c2e4b6d8f0a1c3e', 'nope']
+      });
+      expect(results.map((r) => r.id),
+          ['5c7e9a1b3d5f7a9c1e3b5d7f', '7b1d3f5a9c2e4b6d8f0a1c3e', 'nope']);
+      final removed = results[0];
+      expect(removed.error, isNull);
+      expect((removed.item!.status, removed.item!.cancelReason),
+          ('canceled', 'removed'));
+      expect(removed.item!.batchId, isNull);
+      expect(removed.item!.releasedReference, 'wd-88231');
+      expect(results[1].item, isNull);
+      expect((results[1].error!.status, results[1].error!.message), (409, sent));
+      expect((results[2].error!.status, results[2].error!.message),
+          (404, 'not found'));
+    });
+
+    test('remove with empty ids throws, and sends nothing', () async {
+      final payitgo = fakeGateway(requests, 200, {'results': []});
+      expect(
+          () => payitgo.payouts.remove([]),
+          throwsA(isA<ArgumentError>().having((e) => e.message, 'message',
+              'payitgo: ids is empty: remove needs at least one payout request id')));
+      expect(requests, isEmpty);
+    });
+
+    test('list sends only the filters given and returns a page', () async {
+      final payitgo = fakeGateway(requests, 200, {
+        'items': [payoutItem, removedItem],
+        'has_more': true,
+        'next_cursor': 'MjAyNi0xMC0yMFQxNDozMToxMi42WnwyYzVl',
+      });
+      final page = await payitgo.payouts.list(
+          status: ['sent', 'failed', 'canceled'],
+          updatedSince: DateTime.utc(2026, 10, 20, 9).toLocal(),
+          cursor: 'MjAyNi0xMC0yMFQwOTowMDowMFp8YQ',
+          limit: 100);
+      expect(requests.single.method, 'GET');
+      expect(requests.single.url.path, '/v1/payouts');
+      expect(requests.single.url.queryParameters, {
+        'status': 'sent,failed,canceled',
+        'updated_since': '2026-10-20T09:00:00.000Z',
+        'cursor': 'MjAyNi0xMC0yMFQwOTowMDowMFp8YQ',
+        'limit': '100',
+      });
+      expect(requests.single.body, isEmpty);
+      expect(page.items.map((i) => i.id),
+          ['8b2d4f6a1c3e5a7b9d0f2c4e', '5c7e9a1b3d5f7a9c1e3b5d7f']);
+      expect(page.items.last.batchId, isNull);
+      expect((page.hasMore, page.nextCursor),
+          (true, 'MjAyNi0xMC0yMFQxNDozMToxMi42WnwyYzVl'));
+
+      await payitgo.payouts.list(status: [], cursor: '');
+      expect(requests[1].url.toString(), 'https://gateway.test/v1/payouts');
+    });
+
+    test('list: an empty page has no next_cursor', () async {
+      final payitgo =
+          fakeGateway(requests, 200, {'items': [], 'has_more': false});
+      final page = await payitgo.payouts.list(limit: 50);
+      expect(requests.single.url.query, 'limit=50');
+      expect(page.items, isEmpty);
+      expect((page.hasMore, page.nextCursor), (false, null));
     });
 
     test('quote posts the items and returns the quote and its items',
@@ -1391,24 +1574,42 @@ void main() {
   });
 
   group('payout webhooks', () {
-    test('events lists every payout event', () {
-      expect(
-          Webhooks.events,
-          containsAll([
-            'payout_batch.quoted',
-            'payout_batch.pending_approval',
-            'payout_batch.approved',
-            'payout_batch.rejected',
-            'payout_batch.awaiting_funds',
-            'payout_batch.processing',
-            'payout_batch.completed',
-            'payout_batch.canceled',
-            'payout_item.sent',
-            'payout_item.failed',
-            'payout_item.canceled',
-            'payout_wallet.withdrawn',
-          ]));
-      expect(Webhooks.events.last, 'ping');
+    test('events lists every event, in the gateway\'s order', () {
+      expect(Webhooks.events, [
+        'payment.partially_paid',
+        'payment.detecting',
+        'payment.confirmed',
+        'payment.underpaid',
+        'payment.expired',
+        'payment.failed',
+        'payment.wrong_asset',
+        'payment.late_deposit',
+        'payout.approved',
+        'payout.rejected',
+        'payout.sent',
+        'settlement.completed',
+        'settlement.failed',
+        'payout_batch.quoted',
+        'payout_batch.pending_approval',
+        'payout_batch.approved',
+        'payout_batch.rejected',
+        'payout_batch.awaiting_funds',
+        'payout_batch.processing',
+        'payout_batch.completed',
+        'payout_batch.canceled',
+        'payout_item.processing',
+        'payout_item.returned',
+        'payout_item.sent',
+        'payout_item.failed',
+        'payout_item.canceled',
+        'payout_item.claimed',
+        'payout_item.claim_expired',
+        'payout_wallet.withdrawn',
+        'payout_wallet.withdrawal_failed',
+        'payout_schedule.run',
+        'payout_schedule.funding_needed',
+        'ping',
+      ]);
     });
 
     test('an event\'s data wraps into the payout models', () {
@@ -1464,6 +1665,102 @@ void main() {
       expect((w.txId, w.explorerUrl, w.requestedBy), ('ab' * 32, null, 'usr_1'));
       expect(w.createdAt, DateTime.utc(2026, 10, 20, 11, 2, 15, 330));
       expect(w.sentAt, DateTime.utc(2026, 10, 20, 11, 3));
+      expect(w.failReason, isNull);
+
+      final failed = PayoutWithdrawal(verify('payout_wallet.withdrawal_failed', {
+        ...w.raw,
+        'status': 'failed',
+        'tx_id': null,
+        'sent_at': null,
+        'fail_reason': 'the network refused the transfer',
+      }).data);
+      expect((failed.status, failed.failReason),
+          ('failed', 'the network refused the transfer'));
+      expect([failed.txId, failed.sentAt], everyElement(isNull));
+
+      // A request leaves the list for a batch of its own, and comes back.
+      final processing = PayoutItem(verify('payout_item.processing', {
+        ...invalidItem,
+        'status': 'ready',
+        'errors': [],
+        'batch_id': '6a1f3c8e2d9b4a7051c3e8f2',
+      }).data);
+      expect((processing.status, processing.batchId),
+          ('ready', '6a1f3c8e2d9b4a7051c3e8f2'));
+      final returned =
+          PayoutItem(verify('payout_item.returned', invalidItem).data);
+      expect((returned.status, returned.batchId), ('invalid', 'inbox_1'));
+      expect(returned.errors.single.code, 'wrong_network');
+    });
+  });
+
+  group('events.list', () {
+    late List<http.Request> requests;
+    setUp(() => requests = []);
+
+    test('sends only the filters given and returns the events', () async {
+      final payitgo = fakeGateway(requests, 200, {
+        'events': [
+          {
+            'id': '9b1e3c5a7d2f4b6e8a0c1d3f',
+            'type': 'payout_item.canceled',
+            'livemode': false,
+            'created_at': '2026-10-20T15:02:44.312Z',
+            'data': removedItem,
+          },
+          {
+            'id': 'a0c2e4b6d8f1a3c5e7b9d1f3',
+            'type': 'payment.confirmed',
+            'livemode': false,
+            'created_at': '2026-10-20T15:03:00Z',
+            'data': chosen,
+          },
+        ],
+        'has_more': true,
+      });
+      final page = await payitgo.events.list(
+          types: ['payout_item.*', 'payment.confirmed'],
+          after: '4f1c2a9e7b3d5f80a2c4e6b8',
+          createdAfter: DateTime.utc(2026, 10, 20, 9, 30, 5),
+          limit: 200);
+      expect(requests.single.method, 'GET');
+      expect(requests.single.url.path, '/v1/events');
+      expect(requests.single.url.queryParameters, {
+        'type': 'payout_item.*,payment.confirmed',
+        'after': '4f1c2a9e7b3d5f80a2c4e6b8',
+        'created_after': '2026-10-20T09:30:05.000Z',
+        'limit': '200',
+      });
+      expect(requests.single.headers['Authorization'], 'Bearer $key');
+      expect(requests.single.body, isEmpty);
+      expect(page.hasMore, isTrue);
+      final e = page.events.first;
+      expect((e.id, e.type, e.livemode),
+          ('9b1e3c5a7d2f4b6e8a0c1d3f', 'payout_item.canceled', false));
+      expect(e.createdAt, DateTime.utc(2026, 10, 20, 15, 2, 44, 312));
+      final it = PayoutItem(e.data);
+      expect((it.cancelReason, it.releasedReference), ('removed', 'wd-88231'));
+      expect(Payment(page.events.last.data).orderId, 'ORD-7');
+
+      await payitgo.events.list();
+      expect(requests[1].url.toString(), 'https://gateway.test/v1/events');
+    });
+
+    test('an empty page, and a storefront\'s key refused', () async {
+      final empty = await fakeGateway(
+          requests, 200, {'events': [], 'has_more': false}).events.list(
+          types: ['payout_wallet.withdrawal_failed']);
+      expect(requests.single.url.query, 'type=payout_wallet.withdrawal_failed');
+      expect(empty.events, isEmpty);
+      expect(empty.hasMore, isFalse);
+
+      const message =
+          "a storefront's key cannot read the account's events: use an account key";
+      await expectLater(
+          fakeGateway(requests, 403, {'error': message}).events.list(),
+          throwsA(isA<PayitgoException>()
+              .having((e) => e.status, 'status', 403)
+              .having((e) => e.message, 'message', message)));
     });
   });
 

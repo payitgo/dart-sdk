@@ -462,6 +462,7 @@ class Payitgo {
     payouts = Payouts._(_transport);
     payoutBatches = PayoutBatches._(_transport);
     payoutWallets = PayoutWallets._(_transport);
+    events = Events._(_transport);
     checkout = PayitgoCheckout._(_Transport._keyless(_transport));
   }
 
@@ -485,6 +486,10 @@ class Payitgo {
 
   /// Your payout wallets, and test top-ups.
   late final PayoutWallets payoutWallets;
+
+  /// The key's mode's events, as their webhooks carried them: to replay
+  /// the ones your system missed.
+  late final Events events;
   late final PayitgoCheckout checkout;
 
   /// Closes the http.Client this client made for itself (and shares with
@@ -669,12 +674,15 @@ class Webhooks {
     'payout_batch.processing',
     'payout_batch.completed',
     'payout_batch.canceled',
+    'payout_item.processing',
+    'payout_item.returned',
     'payout_item.sent',
     'payout_item.failed',
     'payout_item.canceled',
     'payout_item.claimed',
     'payout_item.claim_expired',
     'payout_wallet.withdrawn',
+    'payout_wallet.withdrawal_failed',
     'payout_schedule.run',
     'payout_schedule.funding_needed',
     'ping',
@@ -715,6 +723,53 @@ class Webhooks {
     }
     return Webhook.constructEvent(payload, signatureHeader, key,
         tolerance: tolerance);
+  }
+}
+
+/// One page of [Events.list]: [events], oldest first; while [hasMore],
+/// read on with `after` the last event's id.
+class EventPage {
+  EventPage(Map<String, dynamic> json)
+      : events = [
+          for (final e in (json['events'] as List?) ?? const [])
+            WebhookEvent((e as Map).cast<String, dynamic>())
+        ],
+        hasMore = json['has_more'] as bool? ?? false;
+
+  final List<WebhookEvent> events;
+  final bool hasMore;
+}
+
+/// The key's mode's events, each as its webhook carried it (the same `id`,
+/// `type`, `livemode`, `created_at` and `data`), kept whether it was
+/// delivered or not. Any account key reads them, read-only ones too; a
+/// storefront's key is refused (403).
+class Events {
+  Events._(this._t);
+
+  final _Transport _t;
+
+  /// The events oldest first, to replay what your system missed: of
+  /// [types] (exact, such as `payout_item.sent`, or a family, such as
+  /// `payout_item.*`; all when null), after the event [after] (keep the
+  /// last id you handled), or else created after [createdAfter]. [limit] is
+  /// 1 to 200 (100 by default). Events of the last few seconds are left
+  /// for the next read, so reading on never skips one; a test `ping` is
+  /// never listed. A key without payouts gets claim links without their
+  /// url and PIN.
+  Future<EventPage> list(
+      {List<String>? types,
+      String? after,
+      DateTime? createdAfter,
+      int? limit}) async {
+    final q = <String, String>{
+      if (types != null && types.isNotEmpty) 'type': types.join(','),
+      if (after != null && after.isNotEmpty) 'after': after,
+      if (createdAfter != null)
+        'created_after': createdAfter.toUtc().toIso8601String(),
+      if (limit != null) 'limit': '$limit',
+    };
+    return EventPage(await _t.request('GET', '/v1/events${_query(q)}'));
   }
 }
 

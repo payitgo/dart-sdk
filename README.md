@@ -150,8 +150,12 @@ final shop = Payitgo(key, baseUrl: baseUrl, webhookUrl: 'https://shop.example/or
 ```
 
 A storefront's key cannot set the account's URL (`403`): pass `webhookUrl` on its payments
-instead. Payout events (`payout.*`) always go to the webhook's URL; a payout batch made with
-its own `webhookUrl` sends its events there.
+instead. Payout events (`payout.*`) go to the webhook's URL. A payout request or batch row
+made with its own `webhookUrl` sends its events there, else to its batch's `webhookUrl`, else
+to the webhook's URL.
+
+**Missed some?** Every event is kept: `payitgo.events.list(after: lastId)` replays them,
+oldest first, each exactly as its notification carried it (the same `id`).
 
 **The signing secret.** Every notification of a mode is signed with that mode's secret,
 whichever URL it goes to. Copy it from the dashboard or read it with
@@ -237,6 +241,7 @@ final batch = await payitgo.payouts.send();
 
 await payitgo.payouts.retrieve(request.id!);          // or retrieveByReference('wd-7731')
 await payitgo.payouts.cancel(request.id!);            // out of the list, or canceled before it goes
+await payitgo.payouts.remove(['…', '…']);             // up to 1000 out of the list: a result per id
 ```
 
 `payouts.quote(items: [...])` prices up to 100 payments without keeping anything: show a
@@ -330,8 +335,11 @@ await payitgo.payoutWallets.simulateTopUp('USDT_TRC20', '1000'); // test keys on
 **Webhooks.** `payout_batch.quoted`, `.pending_approval`, `.approved`, `.rejected`,
 `.awaiting_funds`, `.processing`, `.completed` and `.canceled` carry the batch
 (`PayoutBatch(event.data)`); `payout_item.sent`, `.failed` and `.canceled` the payment
-(`PayoutItem(event.data)`), as do a claim link's `payout_item.claimed` and
-`.claim_expired`; `payout_wallet.withdrawn` the withdrawal (`PayoutWithdrawal`). Schedules,
+(`PayoutItem(event.data)`; a canceled one's `cancelReason`, `canceledBy` and `canceledAt`
+say why, who and when), as do a claim link's `payout_item.claimed` and `.claim_expired`, and
+a payout request's `payout_item.processing` (it left your list for a batch) and
+`payout_item.returned` (it came back to the list); `payout_wallet.withdrawn` and
+`payout_wallet.withdrawal_failed` the withdrawal (`PayoutWithdrawal`, with `failReason`). Schedules,
 set up in the dashboard, send `payout_schedule.run` (`PayoutSchedule(event.data)`: its
 `lastBatchId`, or `lastError`) and, a few days before a run the wallet cannot cover,
 `payout_schedule.funding_needed` (`PayoutScheduleFunding(event.data)`: its `schedule` and the
@@ -348,6 +356,12 @@ switch (event.type) {
     await reopenWithdrawal(item.releasedReference ?? item.reference!);
 }
 ```
+
+**Staying in sync.** Every payment, a payout request or a batch row, ends `sent`, `failed`,
+`canceled` or `expired`, with one event each, delivered at least once: handle each event `id`
+once. Events can arrive out of order: act on the payment's `status` and latest `updatedAt`.
+Replay what you missed with `payitgo.events.list(after: lastId)`, and check every payment with
+`payitgo.payouts.list(cursor: savedCursor)` (keep its `nextCursor`).
 
 ## In a Flutter app: show and follow a payment
 
@@ -396,11 +410,13 @@ await payitgo.tokens.list();                               // [TokenInfo(token, 
 await payitgo.tokens.list(amountUsd: '49.90');             // the coins a $49.90 payment offers, with amountDueUsd (a num works too)
 await payitgo.checkout.retrieve(checkoutToken);
 await payitgo.payouts.request(reference: …, asset: …, address: …, amount: …, tag: …, name: …, email: …, note: …,
-                             claim: …, claimAssets: […]); // no address: a claim link
+                             claim: …, claimAssets: […], webhookUrl: …); // no address: a claim link
 await payitgo.payouts.retrieve(id);                        // PayoutItem; or retrieveByReference(reference)
+await payitgo.payouts.list(status: ['sent', 'failed'], updatedSince: …, cursor: …, limit: …); // PayoutPage(items, hasMore, nextCursor)
 await payitgo.payouts.inbox(status: 'ready', limit: 50, offset: 0); // PayoutInbox(inbox, coverage, items, total, …)
 await payitgo.payouts.send(ids: […]);                      // PayoutBatch; without ids every valid request
-await payitgo.payouts.cancel(id);                          // PayoutItem, canceled
+await payitgo.payouts.cancel(id);                          // PayoutItem, canceled (safe to retry)
+await payitgo.payouts.remove([…]);                         // [PayoutRemoveResult(id, item or error)]
 await payitgo.payouts.quote(items: [PayoutItemInput(…)], feePaidBy: …, convert: …, convertFrom: …); // PayoutQuoteResult(quote, items)
 await payitgo.payoutBatches.create(items: […], reference: …, name: …, feePaidBy: …, webhookUrl: …,
                                    convert: 'convert', convertFrom: 'USDT_TRC20');
@@ -415,6 +431,7 @@ await payitgo.webhooks.get();                              // WebhookSettings(li
 await payitgo.webhooks.set(url);                           // WebhookSettings
 await payitgo.webhooks.remove();                           // WebhookSettings, url null (the secret stays)
 await payitgo.webhooks.test();                             // WebhookDelivery of a "ping" event
+await payitgo.events.list(types: ['payout_item.*'], after: …, createdAfter: …, limit: …); // EventPage(events, hasMore)
 payitgo.webhooks.constructEvent(rawBody, signatureHeader, secret: …, tolerance: Duration(minutes: 5));
 Webhook.constructEvent(rawBody, signatureHeader, secret, tolerance: Duration(minutes: 5)); // no client needed
 ```
