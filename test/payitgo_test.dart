@@ -129,6 +129,294 @@ final priced = {
   'price_rate': '1.082',
 };
 
+/// A payout request that was sent: a payment of a batch.
+const payoutItem = {
+  'id': '8b2d4f6a1c3e5a7b9d0f2c4e',
+  'merchant_id': 'mch_1',
+  'livemode': false,
+  'batch_id': '6a1f3c8e2d9b4a7051c3e8f2',
+  'reference': 'wd-1001',
+  'row': 1,
+  'recipient': {'name': 'Ana Silva', 'email': 'ana@example.com'},
+  'asset': 'USDT_TRC20',
+  'ticker': 'USDT',
+  'icon_url': 'https://api.payitgo.co/coins/USDT_TRC20.svg',
+  'chain': 'tron',
+  'address': 'TR7mNkucnhLZoJQLLJ6DR88jpLQufWxUJi',
+  'amount': '120',
+  'send_amount': '120',
+  'platform_fee': '0.6',
+  'network_fee': '5.748213',
+  'fee': '6.348213',
+  'debit': '126.348213',
+  'usd_rate': '1',
+  'amount_usd': '120',
+  'status': 'sent',
+  'errors': [],
+  'warnings': [
+    {
+      'code': 'new_recipient',
+      'field': 'address',
+      'message': 'you never paid this address',
+    }
+  ],
+  'tx_id': '3c9f1a7e5b2d8c4f6a0e9b3d7c1f5a2e8b4d0c6f9a3e7b1d5c8f2a6e0b4d9c3f',
+  'sent_at': '2026-10-20T09:31:12.6Z',
+  'created_at': '2026-10-20T09:15:01.88Z',
+  'updated_at': '2026-10-20T09:31:12.6Z',
+};
+
+/// A payout request kept in the open list, invalid.
+const invalidItem = {
+  'id': '4e6a8c0b2d4f6a1c3e5b7d9a',
+  'merchant_id': 'mch_1',
+  'livemode': false,
+  'batch_id': 'inbox_1',
+  'reference': 'wd-1002',
+  'row': 2,
+  'recipient': {},
+  'asset': 'USDT_BEP20',
+  'chain': 'bsc',
+  'address': 'TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7',
+  'amount': '75',
+  'send_amount': '0',
+  'platform_fee': '0',
+  'network_fee': '0',
+  'fee': '0',
+  'debit': '0',
+  'usd_rate': '0',
+  'amount_usd': '0',
+  'status': 'invalid',
+  'errors': [
+    {
+      'code': 'wrong_network',
+      'field': 'address',
+      'message': 'this address is for Tron, not BNB Smart Chain',
+      'hint': 'pay it in a coin of that network, or check the address',
+    }
+  ],
+  'warnings': null,
+  'created_at': '2026-10-20T09:15:01.88Z',
+  'updated_at': '2026-10-20T09:15:02.4Z',
+};
+
+const usdtTotal = {
+  'asset': 'USDT_TRC20',
+  'ticker': 'USDT',
+  'icon_url': 'https://api.payitgo.co/coins/USDT_TRC20.svg',
+  'chain': 'tron',
+  'network': 'Tron (TRC-20)',
+  'items': 1,
+  'amount': '120',
+  'send_amount': '120',
+  'platform_fee': '0.6',
+  'network_fee': '5.748213',
+  'fee': '6.348213',
+  'debit': '126.348213',
+  'debit_usd': '126.35',
+  'saved_usd': '0',
+};
+
+const counts = {
+  'total': 2,
+  'invalid': 1,
+  'ready': 1,
+  'cooling': 0,
+  'queued': 0,
+  'sending': 0,
+  'sent': 0,
+  'failed': 0,
+  'canceled': 0,
+};
+
+/// A submitted batch the wallet cannot cover yet.
+const payoutBatch = {
+  'id': '6a1f3c8e2d9b4a7051c3e8f2',
+  'merchant_id': 'mch_1',
+  'livemode': false,
+  'reference': 'payroll-2026-10',
+  'name': 'October payroll',
+  'source': 'api',
+  'inbox': false,
+  'open': false,
+  'created_by': 'key_1',
+  'by_api_key': true,
+  'fee_paid_by': 'merchant',
+  'status': 'awaiting_funds',
+  'waiting': {
+    'reason': 'funds',
+    'note': 'top up the payout wallet: 126.348213 USDT_TRC20 on Tron (TRC-20)',
+    'since': '2026-10-20T09:16:40.12Z',
+    'shortfall': [
+      {
+        'asset': 'USDT_TRC20',
+        'network': 'Tron (TRC-20)',
+        'amount': '126.348213',
+        'address': 'TMkq7dZ3vN8xR2pB6cH9sJ4fL1wY5tGaQe',
+      }
+    ],
+  },
+  'totals': [usdtTotal],
+  'counts': counts,
+  'total_usd': '126.35',
+  'quote_expires_at': '2026-10-20T10:15:02.41Z',
+  'approvals_needed': 0,
+  'approvals': null,
+  'submitted_by': 'key_1',
+  'submitted_at': '2026-10-20T09:16:40.09Z',
+  'created_at': '2026-10-20T09:15:01.87Z',
+  'updated_at': '2026-10-20T09:16:40.12Z',
+};
+
+/// The open list of payout requests.
+const openList = {
+  'id': 'inbox_1',
+  'merchant_id': 'mch_1',
+  'livemode': false,
+  'name': 'Payout requests',
+  'source': 'requests',
+  'inbox': true,
+  'open': true,
+  'created_by': 'requests',
+  'by_api_key': false,
+  'fee_paid_by': 'merchant',
+  'status': 'quoted',
+  'totals': [usdtTotal],
+  'counts': counts,
+  'total_usd': '126.35',
+  'approvals_needed': 0,
+  'approvals': [],
+  'created_at': '2026-10-20T09:00:00Z',
+  'updated_at': '2026-10-20T09:15:02.4Z',
+};
+
+const payoutWallets = [
+  {
+    'chain': 'tron',
+    'network': 'Tron',
+    'address': 'TMkq7dZ3vN8xR2pB6cH9sJ4fL1wY5tGaQe',
+    'livemode': false,
+    'assets': [
+      {
+        'asset': 'USDT_TRC20',
+        'ticker': 'USDT',
+        'icon_url': 'https://api.payitgo.co/coins/USDT_TRC20.svg',
+        'balance': '1000',
+        'reserved': '126.348213',
+        'spendable': '873.651787',
+        'needed': '0',
+      }
+    ],
+  },
+  {
+    'chain': 'bsc',
+    'network': 'BNB Smart Chain',
+    'address': '0x8F3a6B2c9D1e4F7a0B5c8D2e6F9a1B4c7D0e3F6a',
+    'livemode': false,
+    'assets': [],
+    'error': 'balances unavailable: try again in a moment',
+  },
+];
+
+/// A claim link funded and waiting for its recipient.
+const claimItem = {
+  'id': '7a9c1e3b5d7f9a1c3e5b7d9f',
+  'merchant_id': 'mch_1',
+  'livemode': false,
+  'batch_id': '6a1f3c8e2d9b4a7051c3e8f2',
+  'reference': 'prize-cup-1',
+  'row': 3,
+  'recipient': {'name': 'Player One', 'email': 'player@example.com'},
+  'asset': 'USDT_TRC20',
+  'ticker': 'USDT',
+  'chain': 'tron',
+  'address': '',
+  'amount': '250',
+  'send_amount': '250',
+  'platform_fee': '1.25',
+  'network_fee': '1.602417',
+  'fee': '2.852417',
+  'debit': '252.852417',
+  'usd_rate': '1',
+  'amount_usd': '250',
+  'status': 'claimable',
+  'errors': [],
+  'warnings': [],
+  'claim': {
+    'email': 'player@example.com',
+    'assets': ['USDT_BEP20', 'BTC'],
+    'expires_at': '2026-11-19T09:20:00Z',
+    'emailed': 1,
+    'last_email_at': '2026-10-20T09:20:01Z',
+    'extended': 0,
+    'url': 'https://pay.example/claim/Zm9vYmFy',
+  },
+  'created_at': '2026-10-20T09:15:01.88Z',
+  'updated_at': '2026-10-20T09:20:01Z',
+};
+
+/// A payment in BTC paid from the wallet's USDT, converted on its way.
+const convertedItem = {
+  'id': '9c1e3b5d7f9a1c3e5b7d9f1a',
+  'merchant_id': 'mch_1',
+  'livemode': false,
+  'batch_id': 'b_conv',
+  'row': 1,
+  'recipient': {},
+  'asset': 'USDT_TRC20',
+  'ticker': 'USDT',
+  'chain': 'tron',
+  'address': 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+  'amount': '650.12',
+  'send_amount': '650.12',
+  'platform_fee': '3.26',
+  'network_fee': '1.602417',
+  'fee': '13.572417',
+  'conversion_fee': '8.71',
+  'debit': '663.692417',
+  'usd_rate': '1',
+  'amount_usd': '650.12',
+  'status': 'sent',
+  'errors': [],
+  'warnings': [],
+  'convert': {
+    'to': 'BTC',
+    'ticker': 'BTC',
+    'network': 'Bitcoin',
+    'to_amount': '0.01',
+    'estimate': '0.00998',
+    'amount_out': '0.00999',
+  },
+  'tx_id': 'cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd',
+  'sent_at': '2026-10-20T09:40:00Z',
+  'created_at': '2026-10-20T09:15:01.88Z',
+  'updated_at': '2026-10-20T09:40:00Z',
+};
+
+/// A schedule as its webhooks carry it: a summary, without its payments.
+const schedule = {
+  'id': 'sch_1',
+  'livemode': false,
+  'name': 'Monthly payroll',
+  'status': 'active',
+  'cadence': 'monthly',
+  'weekday': 0,
+  'day': -1,
+  'at': '09:00',
+  'timezone': 'Africa/Harare',
+  'fee_paid_by': 'merchant',
+  'auto_submit': true,
+  'remind_days': 3,
+  'totals': [
+    {'asset': 'USDT_TRC20', 'ticker': 'USDT', 'items': 12, 'amount': '18000'}
+  ],
+  'next_run_at': '2026-11-30T07:00:00Z',
+  'last_run_at': '2026-10-31T07:00:00Z',
+  'last_batch_id': 'b_oct',
+  'last_error': '',
+  'runs': 4,
+};
+
 /// A client whose requests go to [requests] and are answered with [status]
 /// and [reply] (by default: a created payment's body echoed back as the
 /// payment), without any network.
@@ -612,6 +900,781 @@ void main() {
     await payitgo.tokens.list(amountUsd: '49.90');
     expect(requests.map((r) => r.url.query),
         ['amount_usd=49.9', 'amount_usd=49.90']);
+  });
+
+  group('payouts (requests)', () {
+    late List<http.Request> requests;
+    setUp(() => requests = []);
+
+    for (final status in [201, 200]) {
+      test(
+          'request posts the request and returns the item '
+          '(${status == 201 ? 'new' : 'its reference already used'})',
+          () async {
+        final payitgo = fakeGateway(requests, status, {'item': payoutItem});
+        final it = await payitgo.payouts.request(
+            reference: 'wd-1001',
+            asset: 'USDT_TRC20',
+            address: 'TR7mNkucnhLZoJQLLJ6DR88jpLQufWxUJi',
+            amount: 120,
+            name: 'Ana Silva',
+            email: 'ana@example.com');
+        expect(requests.single.method, 'POST');
+        expect(requests.single.url.toString(), 'https://gateway.test/v1/payouts');
+        expect(requests.single.headers['Authorization'], 'Bearer $key');
+        expect(requests.single.headers['Content-Type'],
+            startsWith('application/json'));
+        expect(jsonDecode(requests.single.body), {
+          'asset': 'USDT_TRC20',
+          'address': 'TR7mNkucnhLZoJQLLJ6DR88jpLQufWxUJi',
+          'amount': '120',
+          'reference': 'wd-1001',
+          'name': 'Ana Silva',
+          'email': 'ana@example.com',
+        });
+        expect(it.raw, payoutItem);
+        expect((it.id, it.batchId, it.reference, it.row),
+            ('8b2d4f6a1c3e5a7b9d0f2c4e', '6a1f3c8e2d9b4a7051c3e8f2', 'wd-1001', 1));
+        expect((it.recipient.name, it.recipient.email, it.recipient.note),
+            ('Ana Silva', 'ana@example.com', null));
+        expect((it.asset, it.ticker, it.chain), ('USDT_TRC20', 'USDT', 'tron'));
+        expect((it.amount, it.sendAmount, it.platformFee, it.networkFee),
+            ('120', '120', '0.6', '5.748213'));
+        expect((it.fee, it.debit, it.usdRate, it.amountUsd),
+            ('6.348213', '126.348213', '1', '120'));
+        expect(it.status, 'sent');
+        expect(it.errors, isEmpty);
+        expect(it.warnings.single.code, 'new_recipient');
+        expect(it.warnings.single.hint, isNull);
+        expect(it.txId, hasLength(64));
+        expect(it.sentAt, DateTime.utc(2026, 10, 20, 9, 31, 12, 600));
+        expect([it.feeCredit, it.coolingUntil, it.explorerUrl, it.tag],
+            everyElement(isNull));
+      });
+    }
+
+    test('an invalid request is kept, and says why', () async {
+      final payitgo = fakeGateway(requests, 201, {'item': invalidItem});
+      final it = await payitgo.payouts.request(
+          reference: 'wd-1002',
+          asset: 'USDT_BEP20',
+          address: 'TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7',
+          amount: '75.50',
+          tag: 7,
+          note: 'withdrawal');
+      expect(jsonDecode(requests.single.body), {
+        'asset': 'USDT_BEP20',
+        'address': 'TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7',
+        'amount': '75.50',
+        'reference': 'wd-1002',
+        'tag': 7,
+        'note': 'withdrawal',
+      });
+      expect(it.status, 'invalid');
+      final e = it.errors.single;
+      expect((e.code, e.field, e.message, e.hint), (
+        'wrong_network',
+        'address',
+        'this address is for Tron, not BNB Smart Chain',
+        'pay it in a coin of that network, or check the address'
+      ));
+      expect(it.warnings, isEmpty);
+      expect(it.ticker, isNull);
+      expect(it.recipient.name, isNull);
+    });
+
+    test('retrieve escapes the id; retrieveByReference queries it', () async {
+      final payitgo = fakeGateway(requests, 200, {'item': payoutItem});
+      final a = await payitgo.payouts.retrieve('8b2d/4f6a');
+      final b = await payitgo.payouts.retrieveByReference('wd 1001&x');
+      expect(requests.map((r) => r.method), ['GET', 'GET']);
+      expect(requests[0].url.toString(),
+          'https://gateway.test/v1/payouts/8b2d%2F4f6a');
+      expect(requests[1].url.toString(),
+          'https://gateway.test/v1/payouts?reference=wd+1001%26x');
+      expect(requests[1].url.queryParameters, {'reference': 'wd 1001&x'});
+      expect(requests.every((r) => r.body.isEmpty), isTrue);
+      expect([a.id, b.id], everyElement('8b2d4f6a1c3e5a7b9d0f2c4e'));
+    });
+
+    test('inbox sends its filters and returns the whole open list', () async {
+      final payitgo = fakeGateway(requests, 200, {
+        'inbox': openList,
+        'coverage': [
+          {
+            'asset': 'USDT_TRC20',
+            'ticker': 'USDT',
+            'network': 'Tron (TRC-20)',
+            'needed': '126.348213',
+            'spendable': '100',
+            'top_up': '26.348213',
+            'address': 'TMkq7dZ3vN8xR2pB6cH9sJ4fL1wY5tGaQe',
+          }
+        ],
+        'items': [invalidItem],
+        'total': 1,
+        'limit': 10,
+        'offset': 20,
+      });
+      final view = await payitgo.payouts
+          .inbox(status: 'invalid,ready', limit: 10, offset: 20);
+      expect(requests.single.method, 'GET');
+      expect(requests.single.url.path, '/v1/payouts/inbox');
+      expect(requests.single.url.queryParameters,
+          {'status': 'invalid,ready', 'limit': '10', 'offset': '20'});
+      expect((view.inbox.id, view.inbox.inbox, view.inbox.open),
+          ('inbox_1', true, true));
+      expect(view.inbox.totals.single.debit, '126.348213');
+      expect(view.inbox.counts.invalid, 1);
+      final c = view.coverage.single;
+      expect((c.asset, c.ticker, c.network), ('USDT_TRC20', 'USDT', 'Tron (TRC-20)'));
+      expect((c.needed, c.spendable, c.topUp, c.address),
+          ('126.348213', '100', '26.348213', 'TMkq7dZ3vN8xR2pB6cH9sJ4fL1wY5tGaQe'));
+      expect(view.items.single.status, 'invalid');
+      expect((view.total, view.limit, view.offset), (1, 10, 20));
+
+      await payitgo.payouts.inbox();
+      expect(requests[1].url.toString(), 'https://gateway.test/v1/payouts/inbox');
+    });
+
+    test('send: every valid request, or those of ids', () async {
+      final payitgo = fakeGateway(requests, 200, {'batch': payoutBatch});
+      final all = await payitgo.payouts.send();
+      expect(requests[0].method, 'POST');
+      expect(requests[0].url.toString(), 'https://gateway.test/v1/payouts/send');
+      expect(requests[0].body, isEmpty);
+      expect(requests[0].headers.containsKey('Content-Type'), isFalse);
+      expect(all.id, '6a1f3c8e2d9b4a7051c3e8f2');
+      await payitgo.payouts.send(ids: ['it_1', 'it_2']);
+      expect(jsonDecode(requests[1].body), {
+        'ids': ['it_1', 'it_2']
+      });
+    });
+
+    test('send with empty ids throws, and sends nothing', () async {
+      final payitgo = fakeGateway(requests, 200, {'batch': payoutBatch});
+      expect(() => payitgo.payouts.send(ids: []), throwsArgumentError);
+      expect(requests, isEmpty);
+    });
+
+    test('cancel deletes the request and returns it', () async {
+      final payitgo = fakeGateway(requests, 200, {
+        'item': {...invalidItem, 'status': 'canceled'}
+      });
+      final it = await payitgo.payouts.cancel('4e6a8c0b2d4f6a1c3e5b7d9a');
+      expect(requests.single.method, 'DELETE');
+      expect(requests.single.url.toString(),
+          'https://gateway.test/v1/payouts/4e6a8c0b2d4f6a1c3e5b7d9a');
+      expect(requests.single.body, isEmpty);
+      expect(it.status, 'canceled');
+    });
+
+    test('quote posts the items and returns the quote and its items',
+        () async {
+      final quoted = {
+        'livemode': false,
+        'row': 1,
+        'recipient': {},
+        'asset': 'USDT_BEP20',
+        'chain': 'bsc',
+        'address': '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
+        'amount': '120',
+        'send_amount': '119.38816579',
+        'platform_fee': '0.6',
+        'network_fee': '0.01183421',
+        'fee': '0.61183421',
+        'debit': '120',
+        'usd_rate': '1',
+        'amount_usd': '120',
+        'status': 'ready',
+        'errors': [],
+        'warnings': [],
+      };
+      final payitgo = fakeGateway(requests, 200, {
+        'quote': {
+          'livemode': false,
+          'fee_paid_by': 'recipient',
+          'totals': [
+            {...usdtTotal, 'asset': 'USDT_BEP20', 'chain': 'bsc'}
+          ],
+          'total_usd': '120',
+          'counts': {...counts, 'total': 1, 'invalid': 0},
+        },
+        'items': [quoted],
+      });
+      final res = await payitgo.payouts.quote(feePaidBy: 'recipient', items: [
+        const PayoutItemInput(
+            asset: 'USDT_BEP20',
+            address: '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
+            amount: '120'),
+      ]);
+      expect(requests.single.method, 'POST');
+      expect(requests.single.url.toString(),
+          'https://gateway.test/v1/payout-quotes');
+      expect(jsonDecode(requests.single.body), {
+        'fee_paid_by': 'recipient',
+        'items': [
+          {
+            'asset': 'USDT_BEP20',
+            'address': '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
+            'amount': '120'
+          }
+        ]
+      });
+      expect((res.quote.livemode, res.quote.feePaidBy, res.quote.totalUsd),
+          (false, 'recipient', '120'));
+      expect(res.quote.totals.single.asset, 'USDT_BEP20');
+      expect((res.quote.counts.total, res.quote.counts.ready), (1, 1));
+      final it = res.items.single;
+      expect((it.sendAmount, it.fee, it.status),
+          ('119.38816579', '0.61183421', 'ready'));
+      // Nothing is kept: no id, batch or times.
+      expect([it.id, it.merchantId, it.batchId, it.createdAt, it.updatedAt],
+          everyElement(isNull));
+    });
+
+    test('a key without payouts is a 403', () async {
+      const message =
+          'this api key cannot make payouts: turn payouts on for it in the dashboard';
+      final payitgo = fakeGateway(requests, 403, {'error': message});
+      await expectLater(
+          payitgo.payouts.request(
+              reference: 'wd-1', asset: 'TRX', address: 'T1', amount: 10),
+          throwsA(isA<PayitgoException>()
+              .having((e) => e.status, 'status', 403)
+              .having((e) => e.message, 'message', message)));
+    });
+  });
+
+  group('payoutBatches', () {
+    late List<http.Request> requests;
+    setUp(() => requests = []);
+
+    for (final status in [201, 200]) {
+      test(
+          'create posts the batch and returns it '
+          '(${status == 201 ? 'new' : 'its reference already used'})',
+          () async {
+        final payitgo = fakeGateway(requests, status, {'batch': payoutBatch});
+        final b = await payitgo.payoutBatches.create(
+          reference: 'payroll-2026-10',
+          name: 'October payroll',
+          feePaidBy: 'merchant',
+          webhookUrl: 'https://shop.example/payouts/ipn',
+          items: [
+            const PayoutItemInput(
+                reference: 'payroll-2026-10-ana',
+                asset: 'USDT_TRC20',
+                address: 'TR7mNkucnhLZoJQLLJ6DR88jpLQufWxUJi',
+                amount: '120',
+                name: 'Ana Silva',
+                email: 'ana@example.com',
+                note: 'October salary'),
+            const PayoutItemInput(
+                asset: 'BNB',
+                address: '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
+                amount: 0.25),
+          ],
+        );
+        expect(requests.single.method, 'POST');
+        expect(requests.single.url.toString(),
+            'https://gateway.test/v1/payout-batches');
+        expect(jsonDecode(requests.single.body), {
+          'reference': 'payroll-2026-10',
+          'name': 'October payroll',
+          'fee_paid_by': 'merchant',
+          'webhook_url': 'https://shop.example/payouts/ipn',
+          'items': [
+            {
+              'asset': 'USDT_TRC20',
+              'address': 'TR7mNkucnhLZoJQLLJ6DR88jpLQufWxUJi',
+              'amount': '120',
+              'reference': 'payroll-2026-10-ana',
+              'name': 'Ana Silva',
+              'email': 'ana@example.com',
+              'note': 'October salary'
+            },
+            {
+              'asset': 'BNB',
+              'address': '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
+              'amount': '0.25'
+            }
+          ]
+        });
+        expect(b.raw, payoutBatch);
+        expect((b.id, b.reference, b.name, b.source),
+            ('6a1f3c8e2d9b4a7051c3e8f2', 'payroll-2026-10', 'October payroll', 'api'));
+        expect((b.inbox, b.open, b.byApiKey, b.createdBy),
+            (false, false, true, 'key_1'));
+        expect((b.feePaidBy, b.status, b.totalUsd),
+            ('merchant', 'awaiting_funds', '126.35'));
+        final w = b.waiting!;
+        expect((w.reason, w.since), ('funds', DateTime.utc(2026, 10, 20, 9, 16, 40, 120)));
+        expect(w.note, startsWith('top up the payout wallet'));
+        final s = w.shortfall.single;
+        expect((s.asset, s.network, s.amount, s.address), (
+          'USDT_TRC20',
+          'Tron (TRC-20)',
+          '126.348213',
+          'TMkq7dZ3vN8xR2pB6cH9sJ4fL1wY5tGaQe'
+        ));
+        final t = b.totals.single;
+        expect((t.asset, t.ticker, t.chain, t.network, t.items),
+            ('USDT_TRC20', 'USDT', 'tron', 'Tron (TRC-20)', 1));
+        expect((t.amount, t.sendAmount, t.platformFee, t.networkFee, t.fee),
+            ('120', '120', '0.6', '5.748213', '6.348213'));
+        expect((t.debit, t.debitUsd, t.savedUsd), ('126.348213', '126.35', '0'));
+        expect((b.counts.total, b.counts.invalid, b.counts.ready, b.counts.sent),
+            (2, 1, 1, 0));
+        expect(b.quoteExpiresAt, DateTime.utc(2026, 10, 20, 10, 15, 2, 410));
+        expect(b.approvalsNeeded, 0);
+        expect(b.approvals, isEmpty);
+        expect((b.submittedBy, b.submittedAt),
+            ('key_1', DateTime.utc(2026, 10, 20, 9, 16, 40, 90)));
+        expect([b.rejection, b.webhookUrl, b.fundedAt, b.completedAt],
+            everyElement(isNull));
+        expect([b.canceledBy, b.canceledAt], everyElement(isNull));
+      });
+    }
+
+    test('list sends its filters', () async {
+      final payitgo = fakeGateway(requests, 200, {
+        'batches': [payoutBatch],
+        'total': 1,
+        'limit': 10,
+        'offset': 0
+      });
+      final page = await payitgo.payoutBatches
+          .list(status: 'awaiting_funds', limit: 10, offset: 0);
+      expect(requests.single.method, 'GET');
+      expect(requests.single.url.toString(),
+          'https://gateway.test/v1/payout-batches?status=awaiting_funds&limit=10&offset=0');
+      expect(page.batches.single.id, '6a1f3c8e2d9b4a7051c3e8f2');
+      expect((page.total, page.limit, page.offset), (1, 10, 0));
+      await payitgo.payoutBatches.list();
+      expect(requests[1].url.toString(), 'https://gateway.test/v1/payout-batches');
+    });
+
+    test('retrieve and items escape the id; items sends its filters',
+        () async {
+      final payitgo = fakeGateway(requests, 200, {
+        'batch': payoutBatch,
+        'items': [payoutItem, invalidItem],
+        'total': 2,
+        'limit': 50,
+        'offset': 0,
+      });
+      final b = await payitgo.payoutBatches.retrieve('b/1');
+      final page = await payitgo.payoutBatches
+          .items('b/1', status: 'sent,failed', limit: 50, offset: 0);
+      expect(requests.map((r) => r.method), ['GET', 'GET']);
+      expect(requests[0].url.toString(),
+          'https://gateway.test/v1/payout-batches/b%2F1');
+      expect(requests[1].url.path, '/v1/payout-batches/b%2F1/items');
+      expect(requests[1].url.queryParameters,
+          {'status': 'sent,failed', 'limit': '50', 'offset': '0'});
+      expect(b.status, 'awaiting_funds');
+      expect(page.items.map((i) => i.status), ['sent', 'invalid']);
+      expect((page.total, page.limit, page.offset), (2, 50, 0));
+      await payitgo.payoutBatches.items('b1');
+      expect(requests[2].url.toString(),
+          'https://gateway.test/v1/payout-batches/b1/items');
+    });
+
+    test('addItems posts the items', () async {
+      final payitgo = fakeGateway(requests, 200, {'batch': payoutBatch});
+      final b = await payitgo.payoutBatches.addItems('b1', [
+        const PayoutItemInput(asset: 'TRX', address: 'TJ9', amount: 50),
+      ]);
+      expect(requests.single.method, 'POST');
+      expect(requests.single.url.toString(),
+          'https://gateway.test/v1/payout-batches/b1/items');
+      expect(jsonDecode(requests.single.body), {
+        'items': [
+          {'asset': 'TRX', 'address': 'TJ9', 'amount': '50'}
+        ]
+      });
+      expect(b.id, '6a1f3c8e2d9b4a7051c3e8f2');
+    });
+
+    test('quote, submit and cancel post to the batch without a body',
+        () async {
+      final payitgo = fakeGateway(requests, 200, {
+        'batch': {
+          ...payoutBatch,
+          'status': 'rejected',
+          'approvals_needed': 1,
+          'approvals': [
+            {'user_id': 'usr_1', 'at': '2026-10-20T09:20:00Z'}
+          ],
+          'rejection': {
+            'by': 'usr_2',
+            'at': '2026-10-20T09:21:00Z',
+            'reason': 'wrong month'
+          },
+        }
+      });
+      final q = await payitgo.payoutBatches.quote('b1');
+      await payitgo.payoutBatches.submit('b1');
+      await payitgo.payoutBatches.cancel('b1');
+      expect(requests.map((r) => r.method), ['POST', 'POST', 'POST']);
+      expect(requests.map((r) => r.url.path), [
+        '/v1/payout-batches/b1/quote',
+        '/v1/payout-batches/b1/submit',
+        '/v1/payout-batches/b1/cancel'
+      ]);
+      expect(requests.every((r) => r.body.isEmpty), isTrue);
+      expect(q.approvals.single.userId, 'usr_1');
+      expect(q.approvals.single.at, DateTime.utc(2026, 10, 20, 9, 20));
+      expect((q.rejection!.by, q.rejection!.reason), ('usr_2', 'wrong month'));
+      expect(q.rejection!.at, DateTime.utc(2026, 10, 20, 9, 21));
+    });
+
+    test('prices that expired are a 409', () async {
+      const message = 'its prices expired: get a new quote first';
+      final payitgo = fakeGateway(requests, 409, {'error': message});
+      await expectLater(
+          payitgo.payoutBatches.submit('b1'),
+          throwsA(isA<PayitgoException>()
+              .having((e) => e.status, 'status', 409)
+              .having((e) => e.message, 'message', message)));
+    });
+  });
+
+  group('payoutWallets', () {
+    late List<http.Request> requests;
+    setUp(() => requests = []);
+
+    test('list returns every wallet', () async {
+      final payitgo = fakeGateway(requests, 200, {'wallets': payoutWallets});
+      final wallets = await payitgo.payoutWallets.list();
+      expect(requests.single.method, 'GET');
+      expect(requests.single.url.toString(),
+          'https://gateway.test/v1/payout-wallets');
+      expect(wallets.map((w) => w.chain), ['tron', 'bsc']);
+      final tron = wallets.first;
+      expect((tron.network, tron.address, tron.livemode, tron.explorerUrl),
+          ('Tron', 'TMkq7dZ3vN8xR2pB6cH9sJ4fL1wY5tGaQe', false, null));
+      final a = tron.assets.single;
+      expect((a.asset, a.ticker, a.iconUrl),
+          ('USDT_TRC20', 'USDT', 'https://api.payitgo.co/coins/USDT_TRC20.svg'));
+      expect((a.balance, a.reserved, a.spendable, a.needed),
+          ('1000', '126.348213', '873.651787', '0'));
+      expect(tron.error, isNull);
+      expect(wallets.last.assets, isEmpty);
+      expect(wallets.last.error, startsWith('balances unavailable'));
+    });
+
+    test('simulateTopUp posts the amount as a string', () async {
+      final payitgo = fakeGateway(requests, 200, {'wallets': payoutWallets});
+      final wallets = await payitgo.payoutWallets.simulateTopUp('USDT_TRC20', 1000);
+      await payitgo.payoutWallets.simulateTopUp('USDT/BEP20', '250.5');
+      expect(requests.map((r) => r.method), ['POST', 'POST']);
+      expect(requests[0].url.toString(),
+          'https://gateway.test/v1/payout-wallets/USDT_TRC20/simulate-top-up');
+      expect(requests[1].url.toString(),
+          'https://gateway.test/v1/payout-wallets/USDT%2FBEP20/simulate-top-up');
+      expect(jsonDecode(requests[0].body), {'amount': '1000'});
+      expect(jsonDecode(requests[1].body), {'amount': '250.5'});
+      expect(wallets.first.assets.single.balance, '1000');
+    });
+
+    test('a live key is a 400', () async {
+      const message = 'only a test wallet is topped up on paper: use a test key';
+      final payitgo = fakeGateway(requests, 400, {'error': message});
+      await expectLater(
+          payitgo.payoutWallets.simulateTopUp('TRX', '10'),
+          throwsA(isA<PayitgoException>()
+              .having((e) => e.status, 'status', 400)
+              .having((e) => e.message, 'message', message)));
+    });
+  });
+
+  group('payout webhooks', () {
+    test('events lists every payout event', () {
+      expect(
+          Webhooks.events,
+          containsAll([
+            'payout_batch.quoted',
+            'payout_batch.pending_approval',
+            'payout_batch.approved',
+            'payout_batch.rejected',
+            'payout_batch.awaiting_funds',
+            'payout_batch.processing',
+            'payout_batch.completed',
+            'payout_batch.canceled',
+            'payout_item.sent',
+            'payout_item.failed',
+            'payout_item.canceled',
+            'payout_wallet.withdrawn',
+          ]));
+      expect(Webhooks.events.last, 'ping');
+    });
+
+    test('an event\'s data wraps into the payout models', () {
+      final payitgo = Payitgo(key, baseUrl: 'http://x', webhookSecret: secret);
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      WebhookEvent verify(String type, Object data) {
+        final body = jsonEncode({
+          'id': 'evt_$type',
+          'type': type,
+          'livemode': false,
+          'created_at': '2026-10-20T09:31:13Z',
+          'data': data,
+        });
+        return payitgo.webhooks.constructEvent(body, sign(secret, now, body));
+      }
+
+      final batch = PayoutBatch(verify('payout_batch.completed', {
+        ...payoutBatch,
+        'status': 'completed',
+        'waiting': null,
+        'completed_at': '2026-10-20T09:40:00Z',
+      }).data);
+      expect(batch.status, 'completed');
+      expect(batch.waiting, isNull);
+      expect(batch.completedAt, DateTime.utc(2026, 10, 20, 9, 40));
+
+      final item = PayoutItem(verify('payout_item.sent', payoutItem).data);
+      expect((item.reference, item.txId), ('wd-1001', payoutItem['tx_id']));
+
+      final w = PayoutWithdrawal(verify('payout_wallet.withdrawn', {
+        'id': '1d3f5a7c9e2b4d6f8a0c2e4b',
+        'merchant_id': 'mch_1',
+        'livemode': false,
+        'asset': 'USDT_TRC20',
+        'chain': 'tron',
+        'amount': '373.651787',
+        'fee': '12.01',
+        'send_amount': '361.641787',
+        'address_id': '3e7a1c9f5b2d4e8a6c0f2b1d',
+        'address': 'TWd4Kp9mR2xH7sN3vB6cJ8fL5qY1tZgEaU',
+        'status': 'sent',
+        'tx_id': 'ab' * 32,
+        'requested_by': 'usr_1',
+        'created_at': '2026-10-20T11:02:15.33Z',
+        'updated_at': '2026-10-20T11:03:00Z',
+        'sent_at': '2026-10-20T11:03:00Z',
+      }).data);
+      expect((w.id, w.asset, w.chain, w.status),
+          ('1d3f5a7c9e2b4d6f8a0c2e4b', 'USDT_TRC20', 'tron', 'sent'));
+      expect((w.amount, w.fee, w.sendAmount), ('373.651787', '12.01', '361.641787'));
+      expect((w.addressId, w.address, w.tag),
+          ('3e7a1c9f5b2d4e8a6c0f2b1d', 'TWd4Kp9mR2xH7sN3vB6cJ8fL5qY1tZgEaU', null));
+      expect((w.txId, w.explorerUrl, w.requestedBy), ('ab' * 32, null, 'usr_1'));
+      expect(w.createdAt, DateTime.utc(2026, 10, 20, 11, 2, 15, 330));
+      expect(w.sentAt, DateTime.utc(2026, 10, 20, 11, 3));
+    });
+  });
+
+  group('claim links and converted payments', () {
+    late List<http.Request> requests;
+    setUp(() => requests = []);
+
+    test('request makes a claim link: no address, its claim fields sent',
+        () async {
+      final payitgo = fakeGateway(requests, 201, {'item': claimItem});
+      final it = await payitgo.payouts.request(
+          reference: 'prize-cup-1',
+          asset: 'USDT_TRC20',
+          amount: '250',
+          name: 'Player One',
+          email: 'player@example.com',
+          claim: true,
+          claimAssets: ['USDT_BEP20', 'BTC']);
+      expect(jsonDecode(requests.single.body), {
+        'asset': 'USDT_TRC20',
+        'amount': '250',
+        'reference': 'prize-cup-1',
+        'name': 'Player One',
+        'email': 'player@example.com',
+        'claim': true,
+        'claim_assets': ['USDT_BEP20', 'BTC'],
+      });
+      expect((it.status, it.address), ('claimable', ''));
+      final c = it.claim!;
+      expect((c.email, c.url),
+          ('player@example.com', 'https://pay.example/claim/Zm9vYmFy'));
+      expect(c.assets, ['USDT_BEP20', 'BTC']);
+      expect(c.expiresAt, DateTime.utc(2026, 11, 19, 9, 20));
+      expect((c.emailed, c.extended), (1, 0));
+      expect(c.lastEmailAt, DateTime.utc(2026, 10, 20, 9, 20, 1));
+      expect([c.claimedAt, c.fundedAsset, c.fundedAmount], everyElement(isNull));
+      expect(it.convert, isNull);
+      expect(it.conversionFee, '0');
+    });
+
+    test('a claimed link in another coin says what funded it', () {
+      final c = PayoutItem({
+        ...claimItem,
+        'status': 'queued',
+        'address': '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
+        'claim': {
+          'assets': [],
+          'claimed_at': '2026-10-21T10:00:00Z',
+          'emailed': 0,
+          'extended': 2,
+          'funded_asset': 'USDT_BEP20',
+          'funded_amount': '250.5',
+        },
+      }).claim!;
+      expect(c.email, isNull);
+      expect(c.assets, isEmpty);
+      expect(c.claimedAt, DateTime.utc(2026, 10, 21, 10));
+      expect((c.extended, c.fundedAsset, c.fundedAmount),
+          (2, 'USDT_BEP20', '250.5'));
+    });
+
+    test('batch items send claim and claim_assets as given; no address',
+        () async {
+      final payitgo = fakeGateway(requests, 201, {'batch': payoutBatch});
+      await payitgo.payoutBatches.create(items: [
+        const PayoutItemInput(
+            asset: 'USDT_TRC20',
+            amount: '50',
+            email: 'winner@example.com',
+            claim: true),
+        const PayoutItemInput(
+            asset: 'USDT_BEP20', amount: 20, claimAssets: ['USDT_TRC20']),
+        const PayoutItemInput(
+            asset: 'XRP',
+            address: 'rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe',
+            tag: 1042,
+            amount: '30',
+            claim: false),
+      ]);
+      expect(jsonDecode(requests.single.body)['items'], [
+        {
+          'asset': 'USDT_TRC20',
+          'amount': '50',
+          'email': 'winner@example.com',
+          'claim': true
+        },
+        {
+          'asset': 'USDT_BEP20',
+          'amount': '20',
+          'claim_assets': ['USDT_TRC20']
+        },
+        {
+          'asset': 'XRP',
+          'address': 'rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe',
+          'amount': '30',
+          'tag': 1042,
+          'claim': false
+        },
+      ]);
+    });
+
+    test('create and quote send convert and convert_from', () async {
+      final payitgo = fakeGateway(requests, 201, {
+        'batch': {
+          ...payoutBatch,
+          'convert': 'convert',
+          'convert_from': 'USDT_TRC20',
+          'counts': {...counts, 'claimable': 2, 'expired': 1},
+        },
+        'quote': {
+          'livemode': false,
+          'fee_paid_by': 'merchant',
+          'totals': [usdtTotal],
+          'total_usd': '663.69',
+          'counts': counts,
+        },
+        'items': [convertedItem],
+      });
+      const btc = PayoutItemInput(
+          asset: 'BTC',
+          address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+          amount: '0.01');
+      final b = await payitgo.payoutBatches.create(
+          reference: 'conv-1',
+          convert: 'convert',
+          convertFrom: 'USDT_TRC20',
+          items: [btc]);
+      final q = await payitgo.payouts
+          .quote(convert: 'convert', convertFrom: 'USDT_TRC20', items: [btc]);
+      for (final r in requests) {
+        final sent = jsonDecode(r.body) as Map;
+        expect((sent['convert'], sent['convert_from']), ('convert', 'USDT_TRC20'));
+      }
+      expect(requests.map((r) => r.url.path),
+          ['/v1/payout-batches', '/v1/payout-quotes']);
+      expect((b.convert, b.convertFrom), ('convert', 'USDT_TRC20'));
+      expect((b.counts.claimable, b.counts.expired), (2, 1));
+      expect(PayoutBatch(payoutBatch).convert, '');
+      expect(PayoutBatch(payoutBatch).convertFrom, isNull);
+      expect(PayoutBatch(payoutBatch).counts.claimable, 0);
+
+      final it = q.items.single;
+      expect((it.asset, it.amount, it.fee, it.conversionFee, it.debit),
+          ('USDT_TRC20', '650.12', '13.572417', '8.71', '663.692417'));
+      expect(it.address, 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq');
+      final c = it.convert!;
+      expect((c.to, c.ticker, c.network), ('BTC', 'BTC', 'Bitcoin'));
+      expect((c.toAmount, c.estimate, c.amountOut),
+          ('0.01', '0.00998', '0.00999'));
+      expect(PayoutConversion({'to': 'BTC', 'to_amount': '0.01', 'estimate': '0'}).amountOut,
+          isNull);
+      expect(it.claim, isNull);
+    });
+
+    test('events: claim links and schedules wrap into their models', () {
+      expect(
+          Webhooks.events,
+          containsAll([
+            'payout_item.claimed',
+            'payout_item.claim_expired',
+            'payout_schedule.run',
+            'payout_schedule.funding_needed',
+          ]));
+      final payitgo = Payitgo(key, baseUrl: 'http://x', webhookSecret: secret);
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      WebhookEvent verify(String type, Object data) {
+        final body = jsonEncode({
+          'id': 'evt_$type',
+          'type': type,
+          'livemode': false,
+          'created_at': '2026-10-20T09:31:13Z',
+          'data': data,
+        });
+        return payitgo.webhooks.constructEvent(body, sign(secret, now, body));
+      }
+
+      final claimed = PayoutItem(verify('payout_item.claimed', {
+        ...claimItem,
+        'status': 'queued',
+        'claim': {...claimItem['claim'] as Map, 'claimed_at': '2026-10-21T10:00:00Z'},
+      }).data);
+      expect(claimed.claim!.claimedAt, DateTime.utc(2026, 10, 21, 10));
+      final expired = PayoutItem(verify('payout_item.claim_expired',
+          {...claimItem, 'status': 'expired'}).data);
+      expect(expired.status, 'expired');
+
+      final run = PayoutSchedule(verify('payout_schedule.run', schedule).data);
+      expect((run.id, run.name, run.status, run.cadence, run.livemode),
+          ('sch_1', 'Monthly payroll', 'active', 'monthly', false));
+      expect(run.nextRunAt, DateTime.utc(2026, 11, 30, 7));
+      expect(run.lastRunAt, DateTime.utc(2026, 10, 31, 7));
+      expect((run.lastBatchId, run.lastError), ('b_oct', ''));
+      expect(run.raw.containsKey('items'), isFalse);
+
+      final funding = PayoutScheduleFunding(
+          verify('payout_schedule.funding_needed', {
+        'schedule': schedule,
+        'shortfall': [
+          {
+            'asset': 'USDT_TRC20',
+            'network': 'Tron (TRC-20)',
+            'amount': '1500',
+            'address': 'TMkq7dZ3vN8xR2pB6cH9sJ4fL1wY5tGaQe',
+          }
+        ],
+      }).data);
+      expect(funding.schedule.id, 'sch_1');
+      final s = funding.shortfall.single;
+      expect((s.asset, s.amount, s.address),
+          ('USDT_TRC20', '1500', 'TMkq7dZ3vN8xR2pB6cH9sJ4fL1wY5tGaQe'));
+    });
   });
 
   group('close', () {

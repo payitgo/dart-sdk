@@ -5,7 +5,9 @@ import 'package:http/http.dart' as http;
 
 import 'webhook.dart';
 
-const _version = '0.5.0';
+part 'payouts.dart';
+
+const _version = '0.6.0';
 
 /// Where the gateway lives when no `baseUrl` is passed.
 const _defaultBaseUrl = 'https://api.payitgo.co';
@@ -457,6 +459,9 @@ class Payitgo {
     payments = Payments._(_transport, webhookUrl);
     tokens = Tokens._(_transport);
     webhooks = Webhooks._(_transport, webhookSecret);
+    payouts = Payouts._(_transport);
+    payoutBatches = PayoutBatches._(_transport);
+    payoutWallets = PayoutWallets._(_transport);
     checkout = PayitgoCheckout._(_Transport._keyless(_transport));
   }
 
@@ -470,6 +475,16 @@ class Payitgo {
   /// The key's mode's webhook, and `constructEvent` to verify its
   /// notifications.
   late final Webhooks webhooks;
+
+  /// Payout requests: your clients' payouts, one by one, from your payout
+  /// wallet.
+  late final Payouts payouts;
+
+  /// Batches of payouts: a whole list at once.
+  late final PayoutBatches payoutBatches;
+
+  /// Your payout wallets, and test top-ups.
+  late final PayoutWallets payoutWallets;
   late final PayitgoCheckout checkout;
 
   /// Closes the http.Client this client made for itself (and shares with
@@ -646,6 +661,22 @@ class Webhooks {
     'payout.sent',
     'settlement.completed',
     'settlement.failed',
+    'payout_batch.quoted',
+    'payout_batch.pending_approval',
+    'payout_batch.approved',
+    'payout_batch.rejected',
+    'payout_batch.awaiting_funds',
+    'payout_batch.processing',
+    'payout_batch.completed',
+    'payout_batch.canceled',
+    'payout_item.sent',
+    'payout_item.failed',
+    'payout_item.canceled',
+    'payout_item.claimed',
+    'payout_item.claim_expired',
+    'payout_wallet.withdrawn',
+    'payout_schedule.run',
+    'payout_schedule.funding_needed',
     'ping',
   ];
 

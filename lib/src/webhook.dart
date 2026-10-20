@@ -25,7 +25,12 @@ class WebhookEvent {
   DateTime get createdAt => DateTime.parse(raw['created_at'] as String);
 
   /// The payment (payment.* events), the settlement (settlement.*), the
-  /// payout (payout.*), or `{"message": "pong"}` (ping).
+  /// payout (payout.*), the payout batch (payout_batch.*: `PayoutBatch`),
+  /// the payout batch's payment (payout_item.*: `PayoutItem`), the payout
+  /// wallet's withdrawal (payout_wallet.withdrawn: `PayoutWithdrawal`), the
+  /// payout schedule (payout_schedule.run: `PayoutSchedule`), the schedule
+  /// and its shortfall (payout_schedule.funding_needed:
+  /// `PayoutScheduleFunding`), or `{"message": "pong"}` (ping).
   Map<String, dynamic> get data => (raw['data'] as Map).cast<String, dynamic>();
 }
 
