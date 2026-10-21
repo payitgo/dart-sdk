@@ -35,7 +35,7 @@ Future<void> main() async {
       // What is being paid for: shown to the customer on the checkout page.
       description: '2 x Acme T-shirt',
       token: 'USDT_TRC20', // leave it out to let the customer choose the coin
-      successUrl: 'https://shop.example/thanks',
+      successUrl: 'https://yourdomain.com/thanks',
       simulate: await payitgo.isLive() ? null : 'confirmed',
     );
   } on PayitgoException catch (e) {

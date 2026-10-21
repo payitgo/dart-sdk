@@ -33,7 +33,7 @@ final payment = await payitgo.payments.create(
   orderId: 'ORD-1001',   // your order id: safe to retry
   amountUsd: 19.99,
   // token: 'USDT_TRC20',   // optional: without it the customer picks the coin
-  successUrl: 'https://shop.example/thanks',
+  successUrl: 'https://yourdomain.com/thanks',
 );
 print(payment.checkoutUrl);
 
@@ -140,13 +140,13 @@ accepting POST requests), or give a payment its own when you create it:
 
 ```dart
 // Once per mode (safe to repeat):
-await payitgo.webhooks.set('https://shop.example/payitgo/ipn');
+await payitgo.webhooks.set('https://api.yourdomain.com/payitgo/ipn');
 
 // Or per payment: its events go there instead of the webhook's URL.
-await payitgo.payments.create(orderId: 'ORD-1', amountUsd: 10, webhookUrl: 'https://shop.example/orders/ipn');
+await payitgo.payments.create(orderId: 'ORD-1', amountUsd: 10, webhookUrl: 'https://api.yourdomain.com/orders/ipn');
 
 // Or as the client's default for every payment it creates (a payment's own webhookUrl wins):
-final shop = Payitgo(key, baseUrl: baseUrl, webhookUrl: 'https://shop.example/orders/ipn');
+final shop = Payitgo(key, baseUrl: baseUrl, webhookUrl: 'https://api.yourdomain.com/orders/ipn');
 ```
 
 A storefront's key cannot set the account's URL (`403`): pass `webhookUrl` on its payments
@@ -366,7 +366,7 @@ Replay what you missed with `payitgo.events.list(after: lastId)`, and check ever
 ## In a Flutter app: show and follow a payment
 
 ```dart
-final checkout = PayitgoCheckout(baseUrl: 'https://api.example.com');
+final checkout = PayitgoCheckout(baseUrl: 'https://api.payitgo.co');
 
 final payment = await checkout.retrieve(checkoutToken);    // from your backend
 // show payment.cryptoAmount, payment.token, payment.depositAddress,
@@ -393,7 +393,7 @@ The app only shows status; your backend still fulfils orders from the
 
 ```dart
 final payitgo = Payitgo(apiKey,
-    baseUrl: 'https://api.example.com',  // or the package's default address
+    baseUrl: 'https://api.payitgo.co',  // the default
     maxRetries: 2, timeout: Duration(seconds: 30),
     webhookSecret: secret,               // for webhooks.constructEvent
     webhookUrl: 'https://…');            // default webhookUrl of payments.create
