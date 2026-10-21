@@ -777,7 +777,7 @@ class Events {
 /// Your backend creates the payment and hands the app its `checkout_token`.
 ///
 /// ```dart
-/// final checkout = PayitgoCheckout(baseUrl: 'https://api.example.com');
+/// final checkout = PayitgoCheckout(baseUrl: 'https://api.payitgo.co');
 /// final payment = await checkout.retrieve(checkoutToken);
 /// await for (final p in checkout.watch(checkoutToken)) { /* update the UI */ }
 /// checkout.close(); // when the app no longer needs it
