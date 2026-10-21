@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1
+
+- Docs show payitgo's real addresses; merchants' are yourdomain.com
+
 ## 0.6.0
 
 - Mass payouts: pay your own clients from your payout wallet.
