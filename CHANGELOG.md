@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.0
+
+- Fees are one sum per transaction: merchants see only the total
+
 ## 0.6.2
 
 - Docs checked against the code; SDK examples and errors use payitgo's API
