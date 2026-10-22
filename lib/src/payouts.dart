@@ -251,10 +251,8 @@ class PayoutItem {
   /// What reaches the recipient: [amount], less [fee] when the recipient
   /// pays the fees.
   String get sendAmount => _dec(raw['send_amount']);
-  String get platformFee => _dec(raw['platform_fee']);
-  String get networkFee => _dec(raw['network_fee']);
 
-  /// [platformFee] and [networkFee] together.
+  /// The whole fee: a converted payment's converting included.
   String get fee => _dec(raw['fee']);
 
   /// What it takes from the payout wallet.
@@ -318,9 +316,6 @@ class PayoutItem {
       ? null
       : PayoutConversion(raw['convert'] as Map<String, dynamic>);
 
-  /// What converting costs, part of [fee]; "0" when not converted.
-  String get conversionFee => _dec(raw['conversion_fee']);
-
   /// The fee given back for a payment never sent, taken off your next
   /// fees in its coin.
   String? get feeCredit => raw['fee_credit']?.toString();
@@ -349,8 +344,6 @@ class PayoutAssetTotal {
   int get items => raw['items'] as int? ?? 0;
   String get amount => _dec(raw['amount']);
   String get sendAmount => _dec(raw['send_amount']);
-  String get platformFee => _dec(raw['platform_fee']);
-  String get networkFee => _dec(raw['network_fee']);
   String get fee => _dec(raw['fee']);
 
   /// What the wallet gives for them, and its dollar value.

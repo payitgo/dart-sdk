@@ -176,10 +176,6 @@ class Payment {
   String get amountDueUsd => raw['amount_due_usd'] as String? ?? usdAmount;
   bool get feesPaidByCustomer => raw['fees_paid_by_customer'] as bool? ?? false;
 
-  /// The network fee quoted for moving the payment, in its coin and in dollars.
-  String get networkFee => raw['network_fee'] as String? ?? '0';
-  String get networkFeeUsd => raw['network_fee_usd'] as String? ?? '0';
-
   /// Where the money goes once final: `custodial` (your balance) or `direct` (your payout address).
   String get settlement => raw['settlement'] as String? ?? 'custodial';
 
