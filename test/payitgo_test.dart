@@ -60,8 +60,6 @@ const chosen = {
   'usd_amount': '10',
   'amount_due_usd': '10',
   'fees_paid_by_customer': false,
-  'network_fee': '0.000012',
-  'network_fee_usd': '0.01',
   'settlement': 'custodial',
   'received_usd': '0',
   'rate_locked': '0.5',
@@ -92,8 +90,6 @@ const simulated = {
   'usd_amount': '20',
   'amount_due_usd': '20',
   'fees_paid_by_customer': false,
-  'network_fee': '1',
-  'network_fee_usd': '0.3',
   'settlement': 'custodial',
   'received_usd': '20',
   'rate_locked': '1',
@@ -145,8 +141,6 @@ const payoutItem = {
   'address': 'TR7mNkucnhLZoJQLLJ6DR88jpLQufWxUJi',
   'amount': '120',
   'send_amount': '120',
-  'platform_fee': '0.6',
-  'network_fee': '5.748213',
   'fee': '6.348213',
   'debit': '126.348213',
   'usd_rate': '1',
@@ -180,8 +174,6 @@ const invalidItem = {
   'address': 'TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7',
   'amount': '75',
   'send_amount': '0',
-  'platform_fee': '0',
-  'network_fee': '0',
   'fee': '0',
   'debit': '0',
   'usd_rate': '0',
@@ -214,8 +206,6 @@ const removedItem = {
   'address': 'TR7mNkucnhLZoJQLLJ6DR88jpLQufWxUJi',
   'amount': '40',
   'send_amount': '40',
-  'platform_fee': '0.5',
-  'network_fee': '1.602417',
   'fee': '2.102417',
   'debit': '42.102417',
   'usd_rate': '1',
@@ -241,8 +231,6 @@ const usdtTotal = {
   'items': 1,
   'amount': '120',
   'send_amount': '120',
-  'platform_fee': '0.6',
-  'network_fee': '5.748213',
   'fee': '6.348213',
   'debit': '126.348213',
   'debit_usd': '126.35',
@@ -365,8 +353,6 @@ const claimItem = {
   'address': '',
   'amount': '250',
   'send_amount': '250',
-  'platform_fee': '1.25',
-  'network_fee': '1.602417',
   'fee': '2.852417',
   'debit': '252.852417',
   'usd_rate': '1',
@@ -401,10 +387,7 @@ const convertedItem = {
   'address': 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   'amount': '650.12',
   'send_amount': '650.12',
-  'platform_fee': '3.26',
-  'network_fee': '1.602417',
   'fee': '13.572417',
-  'conversion_fee': '8.71',
   'debit': '663.692417',
   'usd_rate': '1',
   'amount_usd': '650.12',
@@ -970,8 +953,7 @@ void main() {
         expect((it.recipient.name, it.recipient.email, it.recipient.note),
             ('Ana Silva', 'ana@example.com', null));
         expect((it.asset, it.ticker, it.chain), ('USDT_TRC20', 'USDT', 'tron'));
-        expect((it.amount, it.sendAmount, it.platformFee, it.networkFee),
-            ('120', '120', '0.6', '5.748213'));
+        expect((it.amount, it.sendAmount), ('120', '120'));
         expect((it.fee, it.debit, it.usdRate, it.amountUsd),
             ('6.348213', '126.348213', '1', '120'));
         expect(it.status, 'sent');
@@ -1263,8 +1245,6 @@ void main() {
         'address': '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
         'amount': '120',
         'send_amount': '119.38816579',
-        'platform_fee': '0.6',
-        'network_fee': '0.01183421',
         'fee': '0.61183421',
         'debit': '120',
         'usd_rate': '1',
@@ -1404,8 +1384,7 @@ void main() {
         final t = b.totals.single;
         expect((t.asset, t.ticker, t.chain, t.network, t.items),
             ('USDT_TRC20', 'USDT', 'tron', 'Tron (TRC-20)', 1));
-        expect((t.amount, t.sendAmount, t.platformFee, t.networkFee, t.fee),
-            ('120', '120', '0.6', '5.748213', '6.348213'));
+        expect((t.amount, t.sendAmount, t.fee), ('120', '120', '6.348213'));
         expect((t.debit, t.debitUsd, t.savedUsd), ('126.348213', '126.35', '0'));
         expect((b.counts.total, b.counts.invalid, b.counts.ready, b.counts.sent),
             (2, 1, 1, 0));
@@ -1798,7 +1777,6 @@ void main() {
       expect(c.lastEmailAt, DateTime.utc(2026, 10, 20, 9, 20, 1));
       expect([c.claimedAt, c.fundedAsset, c.fundedAmount], everyElement(isNull));
       expect(it.convert, isNull);
-      expect(it.conversionFee, '0');
     });
 
     test('a claimed link in another coin says what funded it', () {
@@ -1903,8 +1881,8 @@ void main() {
       expect(PayoutBatch(payoutBatch).counts.claimable, 0);
 
       final it = q.items.single;
-      expect((it.asset, it.amount, it.fee, it.conversionFee, it.debit),
-          ('USDT_TRC20', '650.12', '13.572417', '8.71', '663.692417'));
+      expect((it.asset, it.amount, it.fee, it.debit),
+          ('USDT_TRC20', '650.12', '13.572417', '663.692417'));
       expect(it.address, 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq');
       final c = it.convert!;
       expect((c.to, c.ticker, c.network), ('BTC', 'BTC', 'Bitcoin'));

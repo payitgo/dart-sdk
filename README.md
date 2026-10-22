@@ -311,7 +311,7 @@ final batch = await payitgo.payoutBatches.create(
   items: [PayoutItemInput(asset: 'BTC', address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', amount: '0.01')],
 );
 final item = (await payitgo.payoutBatches.items(batch.id)).items.single;
-// item.asset 'USDT_TRC20', item.amount, item.fee (with item.conversionFee) and item.debit
+// item.asset 'USDT_TRC20', item.amount, item.fee (converting included) and item.debit
 // are in the wallet's coin; item.convert!.to 'BTC', .toAmount '0.01' (what you asked),
 // .estimate (about what arrives) and, once sent, .amountOut (what arrived).
 ```
