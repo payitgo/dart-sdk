@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.2
+
+- Docs checked against the code; SDK examples and errors use payitgo's API
+
 ## 0.6.1
 
 - Docs show payitgo's real addresses; merchants' are yourdomain.com
