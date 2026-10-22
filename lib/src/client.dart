@@ -371,7 +371,7 @@ class _Transport {
   static String _checkBaseUrl(String baseUrl) {
     final trimmed = baseUrl.replaceAll(RegExp(r'/+$'), '');
     if (trimmed.isEmpty) {
-      throw ArgumentError("payitgo: baseUrl must be your gateway's address");
+      throw ArgumentError('payitgo: baseUrl is empty: leave it out to use https://api.payitgo.co');
     }
     return trimmed;
   }
@@ -777,7 +777,7 @@ class Events {
 /// Your backend creates the payment and hands the app its `checkout_token`.
 ///
 /// ```dart
-/// final checkout = PayitgoCheckout(baseUrl: 'https://api.payitgo.co');
+/// final checkout = PayitgoCheckout();
 /// final payment = await checkout.retrieve(checkoutToken);
 /// await for (final p in checkout.watch(checkoutToken)) { /* update the UI */ }
 /// checkout.close(); // when the app no longer needs it
