@@ -23,7 +23,6 @@ import 'package:payitgo/payitgo.dart';
 
 final payitgo = Payitgo(
   Platform.environment['PAYITGO_KEY']!,
-  baseUrl: Platform.environment['PAYITGO_BASE_URL']!,
   webhookSecret: Platform.environment['PAYITGO_WEBHOOK_SECRET'], // the signing secret: see Webhooks (IPN) below
 );
 
@@ -146,7 +145,7 @@ await payitgo.webhooks.set('https://api.yourdomain.com/payitgo/ipn');
 await payitgo.payments.create(orderId: 'ORD-1', amountUsd: 10, webhookUrl: 'https://api.yourdomain.com/orders/ipn');
 
 // Or as the client's default for every payment it creates (a payment's own webhookUrl wins):
-final shop = Payitgo(key, baseUrl: baseUrl, webhookUrl: 'https://api.yourdomain.com/orders/ipn');
+final shop = Payitgo(key, webhookUrl: 'https://api.yourdomain.com/orders/ipn');
 ```
 
 A storefront's key cannot set the account's URL (`403`): pass `webhookUrl` on its payments
@@ -162,7 +161,7 @@ whichever URL it goes to. Copy it from the dashboard or read it with
 `(await payitgo.webhooks.get()).secret`, and give it to the client once:
 
 ```dart
-final payitgo = Payitgo(key, baseUrl: baseUrl, webhookSecret: Platform.environment['PAYITGO_WEBHOOK_SECRET']);
+final payitgo = Payitgo(key, webhookSecret: Platform.environment['PAYITGO_WEBHOOK_SECRET']);
 ```
 
 **Receiving them** (shelf). Verify the raw body, handle each event once, and answer `2xx`
@@ -296,7 +295,7 @@ final prize = await payitgo.payouts.request(   // or a PayoutItemInput in a batc
 `payout_item.claimed` says when the recipient chose (`claim.claimedAt`, the payment's
 `address`, and `claim.fundedAsset` / `fundedAmount` when they chose another coin);
 `payout_item.claim_expired` when nobody did. Batch `counts` add `claimable` and `expired`.
-In test mode nothing is emailed: open `claim.url` yourself; the code is always `000000`.
+In test mode nothing is emailed: open `claim.url` yourself; the emailed code is always `000000`.
 
 **Converted payments.** To pay recipients in a coin your wallet does not hold, create the
 batch (or the quote) with `convert: 'convert'` and the coin to pay from: every payment in
@@ -366,7 +365,7 @@ Replay what you missed with `payitgo.events.list(after: lastId)`, and check ever
 ## In a Flutter app: show and follow a payment
 
 ```dart
-final checkout = PayitgoCheckout(baseUrl: 'https://api.payitgo.co');
+final checkout = PayitgoCheckout();
 
 final payment = await checkout.retrieve(checkoutToken);    // from your backend
 // show payment.cryptoAmount, payment.token, payment.depositAddress,
@@ -392,8 +391,7 @@ The app only shows status; your backend still fulfils orders from the
 ## API
 
 ```dart
-final payitgo = Payitgo(apiKey,
-    baseUrl: 'https://api.payitgo.co',  // the default
+final payitgo = Payitgo(apiKey,             // also baseUrl: payitgo's API, default https://api.payitgo.co
     maxRetries: 2, timeout: Duration(seconds: 30),
     webhookSecret: secret,               // for webhooks.constructEvent
     webhookUrl: 'https://…');            // default webhookUrl of payments.create

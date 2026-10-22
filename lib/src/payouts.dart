@@ -111,7 +111,7 @@ class PayoutIssue {
   /// Codes may be added: treat an unknown one by where it is.
   String get code => raw['code'] as String;
 
-  /// The field at fault: `asset`, `amount`, `address`, `tag` or `reference`.
+  /// The field at fault: `asset`, `amount`, `address`, `tag`, `reference`, `email` or `claim_assets`.
   String? get field => raw['field'] as String?;
 
   /// For people: what is wrong.
