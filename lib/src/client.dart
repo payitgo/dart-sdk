@@ -523,6 +523,7 @@ class Payments {
     'failed',
     'wrong_asset',
     'paid_late',
+    'paid_twice',
   ];
 
   /// Creates a payment. Safe to retry: an order with an open payment returns
