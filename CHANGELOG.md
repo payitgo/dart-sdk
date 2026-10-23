@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.1
+
+- npm SDKs publish from their own repositories (trusted publishing)
+
 ## 0.7.0
 
 - Fees are one sum per transaction: merchants see only the total
