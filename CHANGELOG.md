@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.3
+
+- React SDK test: simulate buttons wait for the coin
+- Test payments: an outcome asked for before the coin waits for it
+
 ## 0.7.2
 
 - Test mode plays every outcome: failed payouts, expired claim links, failed withdrawals, paid twice
