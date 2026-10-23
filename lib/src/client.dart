@@ -7,7 +7,7 @@ import 'webhook.dart';
 
 part 'payouts.dart';
 
-const _version = '0.7.0';
+const _version = '0.7.1';
 
 /// Where the gateway lives when no `baseUrl` is passed.
 const _defaultBaseUrl = 'https://api.payitgo.co';

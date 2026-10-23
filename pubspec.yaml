@@ -1,6 +1,6 @@
 name: payitgo
 description: Dart client for the payitgo crypto payment gateway (payments and mass payouts), for Dart servers, with a key-less checkout client for Flutter apps.
-version: 0.7.0
+version: 0.7.1
 homepage: https://payitgo.co
 repository: https://github.com/payitgo/dart-sdk
 
