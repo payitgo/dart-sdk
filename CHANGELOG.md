@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.2
+
+- Test mode plays every outcome: failed payouts, expired claim links, failed withdrawals, paid twice
+
 ## 0.7.1
 
 - npm SDKs publish from their own repositories (trusted publishing)
