@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0
+
+- Payments report in their own currency; merchant account statements
+
 ## 0.7.3
 
 - React SDK test: simulate buttons wait for the coin
