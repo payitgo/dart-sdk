@@ -61,6 +61,11 @@ class Deposit {
   /// When it became final.
   DateTime? get confirmedAt => _date(raw['confirmed_at']);
 
+  /// How many blocks have confirmed it so far, out of [confirmationsRequired]
+  /// on its network: "12 of 20" while it is pending.
+  int get confirmations => (raw['confirmations'] as num?)?.toInt() ?? 0;
+  int get confirmationsRequired => (raw['confirmations_required'] as num?)?.toInt() ?? 0;
+
   /// The sender's address, when the network reports it (for a Bitcoin-like
   /// coin, the first input's): where a refund would go.
   String? get from => raw['from'] as String?;
@@ -195,6 +200,15 @@ class Payment {
           Deposit(d as Map<String, dynamic>)
       ];
   String? get txId => raw['tx_id'] as String?;
+
+  /// The latest deposit's confirmations, out of [confirmationsRequired] on the
+  /// payment's network: while [status] is detecting, the payment is on the
+  /// network and these say how far it is from final.
+  int get confirmations => (raw['confirmations'] as num?)?.toInt() ?? 0;
+  int get confirmationsRequired => (raw['confirmations_required'] as num?)?.toInt() ?? 0;
+
+  /// When the first deposit was seen.
+  DateTime? get detectedAt => raw['detected_at'] == null ? null : DateTime.parse(raw['detected_at'] as String);
   bool get overpaid => raw['overpaid'] as bool? ?? false;
   DateTime get expiresAt => DateTime.parse(raw['expires_at'] as String);
   DateTime get createdAt => DateTime.parse(raw['created_at'] as String);
