@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.1
+
+- SDKs read a payment's confirmations
+
 ## 0.8.0
 
 - Payments report in their own currency; merchant account statements
