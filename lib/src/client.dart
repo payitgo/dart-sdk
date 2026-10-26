@@ -39,8 +39,12 @@ class Deposit {
   /// The asset that arrived: another than the payment's own for a wrong-asset deposit.
   String get token => raw['token'] as String;
   String get chain => raw['chain'] as String;
+
+  /// In [token].
   String get amount => raw['amount'] as String;
-  String get usdValue => raw['usd_value'] as String;
+
+  /// Its value in the payment's currency ([Payment.currency]).
+  String get value => raw['value'] as String;
 
   /// Whether it counts toward the payment.
   bool get counted => raw['counted'] as bool? ?? false;
@@ -149,38 +153,40 @@ class Payment {
   String get chain => raw['chain'] as String;
   String get depositAddress => raw['deposit_address'] as String;
   int? get destinationTag => raw['destination_tag'] as int?;
+  /// What the customer sends, in [token].
   String get cryptoAmount => raw['crypto_amount'] as String;
-  String get receivedAmount => raw['received_amount'] as String;
 
-  /// Your price.
-  String get usdAmount => raw['usd_amount'] as String;
+  /// What has arrived so far, in [token].
+  String get cryptoReceived => raw['crypto_received'] as String;
 
-  /// Your price as you gave it in another currency than the dollar (the
-  /// `priceAmount` of [Payments.create]); null for a payment priced in
-  /// dollars.
-  String? get priceAmount => raw['price_amount'] as String?;
+  /// What the payment was priced in: an ISO 4217 code, upper case (`USD`
+  /// unless [Payments.create] was given another), or the coin of a payment
+  /// link priced in a coin. [amount], [amountDue], [amountReceived],
+  /// [amountExtra], [rateLocked] and each deposit's [Deposit.value] are in it.
+  String get currency => raw['currency'] as String? ?? 'USD';
 
-  /// That currency's ISO 4217 code, upper case (`EUR`); null for a payment
-  /// priced in dollars.
-  String? get priceCurrency => raw['price_currency'] as String?;
+  /// Your price, in [currency].
+  String get amount => raw['amount'] as String;
 
-  /// The dollar value of one unit of [priceCurrency] that [usdAmount] was
-  /// converted at; null for a payment priced in dollars.
-  String? get priceRate => raw['price_rate'] as String?;
-
-  /// The coin's dollar price, locked for this payment when its coin was set
-  /// ("0" while no coin is chosen).
+  /// The coin's price in [currency], locked for this payment when its coin
+  /// was set ("0" while no coin is chosen).
   String get rateLocked => raw['rate_locked'] as String? ?? '0';
 
-  /// What the customer pays in dollars: the price, plus the fees when you pass them on.
-  String get amountDueUsd => raw['amount_due_usd'] as String? ?? usdAmount;
+  /// What the customer pays, in [currency]: the price, plus the fees when you
+  /// pass them on.
+  String get amountDue => raw['amount_due'] as String? ?? amount;
   bool get feesPaidByCustomer => raw['fees_paid_by_customer'] as bool? ?? false;
+
+  /// The part of [amountDue] paid only to reach the exchange's minimum, which
+  /// you receive; null when there is none.
+  String? get amountExtra => raw['amount_extra'] as String?;
 
   /// Where the money goes once final: `custodial` (your balance) or `direct` (your payout address).
   String get settlement => raw['settlement'] as String? ?? 'custodial';
 
-  /// Dollar value of every deposit that counts toward the payment.
-  String get receivedUsd => raw['received_usd'] as String? ?? '0';
+  /// What has arrived so far, in [currency]: every deposit that counts
+  /// toward the payment.
+  String get amountReceived => raw['amount_received'] as String? ?? '0';
 
   /// Completed after it had expired.
   bool get paidLate => raw['paid_late'] as bool? ?? false;
@@ -234,24 +240,34 @@ class PaymentList {
   final int offset;
 }
 
-/// A token a customer can pay with. [minUsd] and [networkFeeUsd] move with
-/// the network's fees.
+/// A token a customer can pay with. Its figures are in the listing's
+/// currency: a payment's own ([Payment.currency]) for its token options, the
+/// one [Tokens.list] was asked for (US dollars without one). [minimum] and
+/// [networkFee] move with the network's fees.
 class TokenInfo {
   TokenInfo(Map<String, dynamic> json)
       : token = json['token'] as String,
         chain = json['chain'] as String,
-        minUsd = json['min_usd'].toString(),
-        networkFeeUsd = json['network_fee_usd']?.toString() ?? '0',
-        amountDueUsd = json['amount_due_usd'] as String?,
+        minimum = json['minimum'].toString(),
+        networkFee = json['network_fee']?.toString() ?? '0',
+        amountDue = json['amount_due'] as String?,
+        amountExtra = json['amount_extra'] as String?,
         feeNote = json['fee_note'] as String? ?? '';
 
   final String token;
   final String chain;
-  final String minUsd;
-  final String networkFeeUsd;
+
+  /// The smallest payment accepted in the token right now.
+  final String minimum;
+
+  /// The network fee for moving a payment in the token right now.
+  final String networkFee;
 
   /// In a payment's token options (or [Tokens.list] with an amount), when fees are passed on: what the customer pays in this token.
-  final String? amountDueUsd;
+  final String? amountDue;
+
+  /// The part of [amountDue] paid only to reach the exchange's minimum, which the merchant receives.
+  final String? amountExtra;
   final String feeNote;
 }
 
@@ -527,20 +543,20 @@ class Payments {
   ];
 
   /// Creates a payment. Safe to retry: an order with an open payment returns
-  /// that payment. Give the price as [amountUsd] (a String or a num), or as
-  /// [priceAmount] (likewise) in [priceCurrency] (an ISO 4217 code such as
-  /// `EUR`, `GBP` or `NGN`), which payitgo converts into dollars at the rate
-  /// of the moment. Leave [token] out to let the customer choose the coin on
-  /// the checkout page, from [tokens] (default: every token the amount
-  /// reaches the minimum of). [webhookUrl] (https) gets the payment's events
-  /// instead of the webhook's URL, signed with the same secret (default: the
-  /// client's `webhookUrl`). [simulate] (test keys only) plays that outcome,
-  /// as [simulate] does, once the payment has its coin.
+  /// that payment. [amount] is the price (a String or a num, sent as
+  /// `amount.toString()`: prefer a String) in [currency], an ISO 4217 code
+  /// such as `EUR`, `GBP` or `NGN` (any case), US dollars when left out; every
+  /// figure of the payment comes back in that currency. Leave [token] out to
+  /// let the customer choose the coin on the checkout page, from [tokens]
+  /// (default: every token the amount reaches the minimum of). [webhookUrl]
+  /// (https) gets the payment's events instead of the webhook's URL, signed
+  /// with the same secret (default: the client's `webhookUrl`). [simulate]
+  /// (test keys only) plays that outcome, as [simulate] does, once the
+  /// payment has its coin.
   Future<Payment> create({
     required String orderId,
-    Object? amountUsd,
-    Object? priceAmount,
-    String? priceCurrency,
+    required Object amount,
+    String? currency,
     String? token,
     List<String>? tokens,
     String? description,
@@ -554,9 +570,8 @@ class Payments {
     final hookUrl = webhookUrl ?? _webhookUrl;
     final body = <String, dynamic>{
       'order_id': orderId,
-      if (amountUsd != null) 'amount_usd': amountUsd.toString(),
-      if (priceAmount != null) 'price_amount': priceAmount.toString(),
-      if (priceCurrency != null) 'price_currency': priceCurrency,
+      'amount': amount.toString(),
+      if (currency != null) 'currency': currency,
       if (token != null) 'token': token,
       if (tokens != null) 'tokens': tokens,
       if (description != null) 'description': description,
@@ -621,16 +636,18 @@ class Tokens {
 
   final _Transport _t;
 
-  /// The tokens a customer can pay with in the key's mode. With [amountUsd]
-  /// (a String or a num, as in [Payments.create]), only the ones a payment of
-  /// that amount offers (its token options), each with
-  /// [TokenInfo.amountDueUsd] when fees are passed on.
-  Future<List<TokenInfo>> list({Object? amountUsd}) async {
-    final query = amountUsd == null
-        ? ''
-        : '?${Uri(queryParameters: {
-                'amount_usd': amountUsd.toString()
-              }).query}';
+  /// The tokens a customer can pay with in the key's mode, their figures
+  /// ([TokenInfo.minimum], [TokenInfo.networkFee], …) in [currency]: an ISO
+  /// 4217 code, US dollars when left out. With [amount] (a String or a num,
+  /// as in [Payments.create]), only the ones a payment of that amount offers
+  /// (its token options), each with [TokenInfo.amountDue] when fees are
+  /// passed on.
+  Future<List<TokenInfo>> list({Object? amount, String? currency}) async {
+    final q = <String, String>{
+      if (amount != null) 'amount': amount.toString(),
+      if (currency != null) 'currency': currency,
+    };
+    final query = q.isEmpty ? '' : '?${Uri(queryParameters: q).query}';
     final json = await _t.request('GET', '/v1/tokens$query');
     return [
       for (final t in json['tokens'] as List)

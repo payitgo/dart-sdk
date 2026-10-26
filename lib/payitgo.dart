@@ -4,7 +4,7 @@
 ///
 /// ```dart
 /// final payitgo = Payitgo(Platform.environment['PAYITGO_KEY']!);
-/// final payment = await payitgo.payments.create(orderId: 'ORD-1001', amountUsd: 10, token: 'USDT_TRC20');
+/// final payment = await payitgo.payments.create(orderId: 'ORD-1001', amount: 10, token: 'USDT_TRC20');
 /// // send the customer to payment.checkoutUrl; fulfil on the payment.confirmed webhook
 /// ```
 ///
