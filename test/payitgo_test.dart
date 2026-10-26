@@ -12,9 +12,9 @@ const key = '8334dfeae25b9b200b75995e6e55cf8c3602120c1920bfef7a4ff8900b620881';
 const secret =
     '05bd6b428158318cc38756fa34aa60795af0fc5d9a316dcc9b060c8ca1863fc3';
 const header =
-    't=1760000000,v1=75eb20fb34bccab4b9121285930b076e5e60ccad0a2542bd76eb56d89744faed';
+    't=1760000000,v1=b61376838fdc09d9241eb407eda645be1e67a88fed148fc057c56a1b784e01e5';
 const body =
-    '{"id":"b8e1f80bd70ae0784c7855a4","type":"payment.confirmed","livemode":false,"created_at":"2026-10-09T12:00:00Z","data":{"id":"040ffd5925d40e11c67b7238","order_id":"ORD-1","status":"confirmed","usd_amount":"10"}}';
+    '{"id":"b8e1f80bd70ae0784c7855a4","type":"payment.confirmed","livemode":false,"created_at":"2026-10-09T12:00:00Z","data":{"id":"040ffd5925d40e11c67b7238","order_id":"ORD-1","status":"confirmed","currency":"USD","amount":"10"}}';
 const otherSecret =
     'bd4106123e659e259c401119d0c7ef0a221df306a5a414b6fb6a579499962d26';
 
@@ -56,12 +56,12 @@ const chosen = {
   'deposit_address': 'rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe',
   'destination_tag': 1042,
   'crypto_amount': '20',
-  'received_amount': '0',
-  'usd_amount': '10',
-  'amount_due_usd': '10',
+  'crypto_received': '0',
+  'currency': 'USD', 'amount': '10',
+  'amount_due': '10',
   'fees_paid_by_customer': false,
   'settlement': 'custodial',
-  'received_usd': '0',
+  'amount_received': '0',
   'rate_locked': '0.5',
   'deposits': [],
   'expires_at': '2026-10-10T12:15:00Z',
@@ -86,12 +86,12 @@ const simulated = {
   'chain': 'tron',
   'deposit_address': 'TPk2bpQqWRpXiaUHS9SXnZCDgvwrsuJ71o',
   'crypto_amount': '20',
-  'received_amount': '20',
-  'usd_amount': '20',
-  'amount_due_usd': '20',
+  'crypto_received': '20',
+  'currency': 'USD', 'amount': '20',
+  'amount_due': '20',
   'fees_paid_by_customer': false,
   'settlement': 'custodial',
-  'received_usd': '20',
+  'amount_received': '20',
   'rate_locked': '1',
   'deposits': [
     {
@@ -100,7 +100,7 @@ const simulated = {
       'token': 'USDT_TRC20',
       'chain': 'tron',
       'amount': '20',
-      'usd_value': '20',
+      'value': '20',
       'counted': true,
       'status': 'pending',
       'seen_at': '2026-10-10T12:00:05Z',
@@ -113,16 +113,15 @@ const simulated = {
   'qr_payload': 'TPk2bpQqWRpXiaUHS9SXnZCDgvwrsuJ71o',
 };
 
-/// A payment priced in euros: the gateway converted the price into
-/// usd_amount at price_rate.
+/// A payment priced in euros: every figure in EUR, converted by the gateway
+/// at the rate of the moment.
 final priced = {
   ...chosen,
   'order_id': 'ORD-10',
-  'usd_amount': '49.23',
-  'amount_due_usd': '49.23',
-  'price_amount': '45.5',
-  'price_currency': 'EUR',
-  'price_rate': '1.082',
+  'currency': 'EUR',
+  'amount': '45.5',
+  'amount_due': '45.5',
+  'rate_locked': '0.46',
 };
 
 /// A payout request that was sent: a payment of a batch.
@@ -598,9 +597,9 @@ void main() {
 
     test('payments.create sends no webhook_url without one', () async {
       final payitgo = fakeGateway(requests, 201);
-      final p = await payitgo.payments.create(orderId: 'ORD-1', amountUsd: 10);
+      final p = await payitgo.payments.create(orderId: 'ORD-1', amount: 10);
       expect(jsonDecode(requests.single.body),
-          {'order_id': 'ORD-1', 'amount_usd': '10'});
+          {'order_id': 'ORD-1', 'amount': '10'});
       expect(p.webhookUrl, isNull);
     });
 
@@ -608,7 +607,7 @@ void main() {
       final payitgo = fakeGateway(requests, 201);
       final p = await payitgo.payments.create(
           orderId: 'ORD-1',
-          amountUsd: 10,
+          amount: 10,
           webhookUrl: 'https://shop.example/own');
       expect(jsonDecode(requests.single.body)['webhook_url'],
           'https://shop.example/own');
@@ -619,13 +618,13 @@ void main() {
         () async {
       final payitgo =
           fakeGateway(requests, 201, null, 'https://shop.example/default');
-      final p = await payitgo.payments.create(orderId: 'ORD-1', amountUsd: 10);
+      final p = await payitgo.payments.create(orderId: 'ORD-1', amount: 10);
       expect(jsonDecode(requests[0].body)['webhook_url'],
           'https://shop.example/default');
       expect(p.webhookUrl, 'https://shop.example/default');
       await payitgo.payments.create(
           orderId: 'ORD-2',
-          amountUsd: 10,
+          amount: 10,
           webhookUrl: 'https://shop.example/own');
       expect(jsonDecode(requests[1].body)['webhook_url'],
           'https://shop.example/own');
@@ -642,9 +641,9 @@ void main() {
           {
             'token': 'USDT_BEP20',
             'chain': 'bsc',
-            'min_usd': '1',
-            'network_fee_usd': '0.01',
-            'amount_due_usd': '40.43',
+            'minimum': '1',
+            'network_fee': '0.01',
+            'amount_due': '40.43',
             'fee_note': ''
           }
         ]
@@ -653,10 +652,10 @@ void main() {
       expect(requests[0].method, 'GET');
       expect(requests[0].url.toString(), 'https://gateway.test/v1/tokens');
       expect(all.single.token, 'USDT_BEP20');
-      final forAmount = await payitgo.tokens.list(amountUsd: '49.90');
+      final forAmount = await payitgo.tokens.list(amount: '49.90');
       expect(requests[1].url.toString(),
-          'https://gateway.test/v1/tokens?amount_usd=49.90');
-      expect(forAmount.single.amountDueUsd, '40.43');
+          'https://gateway.test/v1/tokens?amount=49.90');
+      expect(forAmount.single.amountDue, '40.43');
     });
   });
 
@@ -751,12 +750,12 @@ void main() {
       final payitgo = fakeGateway(requests, 201, simulated);
       final p = await payitgo.payments.create(
           orderId: 'ORD-8',
-          amountUsd: 20,
+          amount: 20,
           token: 'USDT_TRC20',
           simulate: 'confirmed');
       expect(jsonDecode(requests.single.body), {
         'order_id': 'ORD-8',
-        'amount_usd': '20',
+        'amount': '20',
         'token': 'USDT_TRC20',
         'simulate': 'confirmed'
       });
@@ -769,38 +768,39 @@ void main() {
     late List<http.Request> requests;
     setUp(() => requests = []);
 
-    test('sends the price, its amount as a string, and reads it back',
-        () async {
+    test(
+        'sends the price in its currency, its amount as a string, and reads '
+        'the figures back in it', () async {
       final payitgo = fakeGateway(requests, 201, priced);
       final p = await payitgo.payments
-          .create(orderId: 'ORD-10', priceAmount: 45.5, priceCurrency: 'eur');
+          .create(orderId: 'ORD-10', amount: 45.5, currency: 'eur');
       expect(jsonDecode(requests.single.body), {
         'order_id': 'ORD-10',
-        'price_amount': '45.5',
-        'price_currency': 'eur'
+        'amount': '45.5',
+        'currency': 'eur'
       });
       expect(p.raw, priced);
-      expect((p.priceAmount, p.priceCurrency, p.priceRate, p.usdAmount),
-          ('45.5', 'EUR', '1.082', '49.23'));
+      expect((p.currency, p.amount, p.amountDue, p.amountExtra),
+          ('EUR', '45.5', '45.5', null));
     });
 
-    test('a payment priced in dollars has none of the price fields', () {
+    test('a payment without a currency is in dollars', () {
       final p = Payment(chosen);
-      expect(
-          [p.priceAmount, p.priceCurrency, p.priceRate], everyElement(isNull));
+      expect((p.currency, p.amount, p.amountDue, p.amountReceived),
+          ('USD', '10', '10', '0'));
     });
 
     test('no exchange rate for the currency is a 503', () async {
       const message =
-          'exchange rate unavailable for price_currency: try again shortly';
+          'exchange rate unavailable for currency: try again shortly';
       final payitgo = fakeGateway(requests, 503, {'error': message});
       await expectLater(
-          payitgo.payments.create(
-              orderId: 'ORD-10', priceAmount: '45.50', priceCurrency: 'EUR'),
+          payitgo.payments
+              .create(orderId: 'ORD-10', amount: '45.50', currency: 'XAF'),
           throwsA(isA<PayitgoException>()
               .having((e) => e.status, 'status', 503)
               .having((e) => e.message, 'message', message)));
-      expect(jsonDecode(requests.single.body)['price_amount'], '45.50');
+      expect(jsonDecode(requests.single.body)['amount'], '45.50');
     });
   });
 
@@ -870,7 +870,7 @@ void main() {
           'token': 'USDT_TRC20',
           'chain': 'tron',
           'amount': '49.9',
-          'usd_value': '49.9',
+          'value': '49.9',
           'counted': true,
           'late': true,
           'status': 'failed',
@@ -884,7 +884,7 @@ void main() {
         }
       ]
     }).deposits.single;
-    expect((d.txId, d.token, d.chain, d.amount, d.usdValue),
+    expect((d.txId, d.token, d.chain, d.amount, d.value),
         ('c19240', 'USDT_TRC20', 'tron', '49.9', '49.9'));
     expect((d.counted, d.late, d.status), (true, true, 'failed'));
     expect(d.seenAt, DateTime.utc(2026, 10, 10, 9, 3, 2, 418));
@@ -898,7 +898,7 @@ void main() {
       'token': 'TRX',
       'chain': 'tron',
       'amount': '1',
-      'usd_value': '0.3',
+      'value': '0.3',
       'counted': true,
       'status': 'pending',
       'seen_at': '2026-10-10T09:03:02Z',
@@ -911,10 +911,11 @@ void main() {
   test('tokens.list takes the amount as a String or a num', () async {
     final requests = <http.Request>[];
     final payitgo = fakeGateway(requests, 200, {'tokens': []});
-    await payitgo.tokens.list(amountUsd: 49.9);
-    await payitgo.tokens.list(amountUsd: '49.90');
+    await payitgo.tokens.list(amount: 49.9);
+    await payitgo.tokens.list(amount: '49.90');
+    await payitgo.tokens.list(amount: '49.90', currency: 'eur');
     expect(requests.map((r) => r.url.query),
-        ['amount_usd=49.9', 'amount_usd=49.90']);
+        ['amount=49.9', 'amount=49.90', 'amount=49.90&currency=eur']);
   });
 
   group('payouts (requests)', () {

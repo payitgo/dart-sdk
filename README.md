@@ -30,7 +30,7 @@ final payitgo = Payitgo(
 //    checkout_token to your Flutter app).
 final payment = await payitgo.payments.create(
   orderId: 'ORD-1001',   // your order id: safe to retry
-  amountUsd: 19.99,
+  amount: 19.99,         // in US dollars unless you give a currency
   // token: 'USDT_TRC20',   // optional: without it the customer picks the coin
   successUrl: 'https://yourdomain.com/thanks',
 );
@@ -57,28 +57,29 @@ Future<Response> ipn(Request request) async {
 A key is a test key or a live key, and does not say which (the dashboard shows a Test or
 Live badge next to it): `await payitgo.isLive()` asks payitgo, once.
 
-## On your server: prices in other currencies
+## On your server: prices in your own currency
 
-To price a payment in your own currency, give `priceAmount` and `priceCurrency` (an ISO
-4217 code such as `EUR`, `GBP` or `NGN`) instead of `amountUsd`. payitgo converts the price
-into dollars at the rate of the moment, and the payment keeps both:
+A payment is priced in US dollars unless you give `currency`, an ISO 4217 code such as `EUR`,
+`GBP` or `NGN` (any case). Every figure on the payment is then in that currency: `amount` (your
+price), `amountDue` (what the customer pays: the price, plus the fees when you pass them on),
+`amountReceived` (what has arrived so far), each deposit's `value`, each coin's `minimum` and
+`networkFee` in `tokenOptions`, and `rateLocked` (the coin's price). Only `cryptoAmount` and
+`cryptoReceived` are in the coin.
 
 ```dart
 final payment = await payitgo.payments.create(
   orderId: 'ORD-1002',
-  priceAmount: '45.50',   // sent as priceAmount.toString(): prefer a String to a double
-  priceCurrency: 'EUR',   // any case
+  amount: '45.50',   // sent as amount.toString(): prefer a String to a double
+  currency: 'EUR',   // any case; US dollars when left out
 );
-// payment.priceAmount '45.5', payment.priceCurrency 'EUR',
-// payment.priceRate '1.082' (dollars per euro), payment.usdAmount '49.23'
+// payment.currency 'EUR', payment.amount '45.5', payment.amountDue '45.5'
 ```
 
-Everything else (`usdAmount`, `cryptoAmount`, fees, minimums) stays in dollars; a payment
-priced in dollars has `null` price getters. Give `amountUsd` or the pair, not both (`400`).
-When no exchange rate can be had, `create` throws a `PayitgoException` with status `503`
-(`exchange rate unavailable for price_currency: try again shortly`) once the client's retries
-are spent: try again shortly. `PayitgoCheckout` reads the same fields, so a Flutter app can
-show the price in your currency next to the dollar amount.
+payitgo converts at the rate of the moment. When no exchange rate can be had, `create` throws
+a `PayitgoException` with status `503` (`exchange rate unavailable for currency: try again
+shortly`) once the client's retries are spent: try again shortly. A payment link priced in a
+coin has that coin as its `currency` (`ETH`), and its figures in the coin. `PayitgoCheckout`
+reads the same fields, so a Flutter app shows every amount in the payment's currency.
 
 ## On your server: your own payment page
 
@@ -95,7 +96,7 @@ needed.
   away.
 
 ```dart
-final payment = await payitgo.payments.create(orderId: 'ORD-1', amountUsd: 10);
+final payment = await payitgo.payments.create(orderId: 'ORD-1', amount: 10);
 // your page shows payment.tokenOptions; the customer picks one
 final chosen = await payitgo.payments.selectToken(payment.id, 'USDT_TRC20'); // or your order id
 // render chosen.depositAddress, chosen.cryptoAmount, chosen.qrPayload, chosen.expiresAt
@@ -115,7 +116,7 @@ outcome and payitgo plays its deposits, status changes and webhooks a few second
 ```dart
 // Choose the outcome when you create the payment (with token it starts at once,
 // without it once the coin is chosen)…
-await payitgo.payments.create(orderId: 'TEST-1', amountUsd: 10, token: 'USDT_TRC20', simulate: 'confirmed');
+await payitgo.payments.create(orderId: 'TEST-1', amount: 10, token: 'USDT_TRC20', simulate: 'confirmed');
 
 // …or later, on a payment you already have (its id or your order id).
 final payment = await payitgo.payments.simulate('TEST-2', 'partially_paid');
@@ -142,7 +143,7 @@ accepting POST requests), or give a payment its own when you create it:
 await payitgo.webhooks.set('https://api.yourdomain.com/payitgo/ipn');
 
 // Or per payment: its events go there instead of the webhook's URL.
-await payitgo.payments.create(orderId: 'ORD-1', amountUsd: 10, webhookUrl: 'https://api.yourdomain.com/orders/ipn');
+await payitgo.payments.create(orderId: 'ORD-1', amount: 10, webhookUrl: 'https://api.yourdomain.com/orders/ipn');
 
 // Or as the client's default for every payment it creates (a payment's own webhookUrl wins):
 final shop = Payitgo(key, webhookUrl: 'https://api.yourdomain.com/orders/ipn');
@@ -397,15 +398,14 @@ final payitgo = Payitgo(apiKey,             // also baseUrl: payitgo's API, defa
     webhookUrl: 'https://…');            // default webhookUrl of payments.create
 
 await payitgo.isLive();                                    // false for a test key (asks payitgo once)
-await payitgo.payments.create(orderId: …, amountUsd: …, token: …, description: …, metadata: {…},
+await payitgo.payments.create(orderId: …, amount: …, currency: …, token: …, description: …, metadata: {…},
                             customerEmail: …, successUrl: …, cancelUrl: …, webhookUrl: …, simulate: …);
-await payitgo.payments.create(orderId: …, priceAmount: …, priceCurrency: …, …); // priced in another currency
 await payitgo.payments.selectToken(paymentId, token);      // or your order id: the payment with its coin
 await payitgo.payments.simulate(paymentId, 'confirmed');   // test keys: plays the outcome
 await payitgo.payments.retrieve(paymentId);                // or your order id
 await payitgo.payments.list(status: 'confirmed', storeId: storeId, limit: 50, offset: 0); // every filter optional
-await payitgo.tokens.list();                               // [TokenInfo(token, chain, minUsd, networkFeeUsd, feeNote)]
-await payitgo.tokens.list(amountUsd: '49.90');             // the coins a $49.90 payment offers, with amountDueUsd (a num works too)
+await payitgo.tokens.list();                               // [TokenInfo(token, chain, minimum, networkFee, feeNote)], in US dollars
+await payitgo.tokens.list(amount: '49.90', currency: 'EUR'); // the coins a 49.90 EUR payment offers, with amountDue (a num works too)
 await payitgo.checkout.retrieve(checkoutToken);
 await payitgo.payouts.request(reference: …, asset: …, address: …, amount: …, tag: …, name: …, email: …, note: …,
                              claim: …, claimAssets: […], webhookUrl: …); // no address: a claim link
@@ -445,9 +445,9 @@ payout's `fee` and `txId`, …) and `raw` for every field. Amounts are decimal s
 
 ```dart
 try {
-  await payitgo.payments.create(orderId: 'ORD-1', amountUsd: 1, token: 'BTC');
+  await payitgo.payments.create(orderId: 'ORD-1', amount: 1, token: 'BTC');
 } on PayitgoException catch (e) {
-  print('${e.status} ${e.message}');   // 400 minimum payment in BTC is $10 right now (network fees)
+  print('${e.status} ${e.message}');   // 400 minimum payment in BTC is $10.00 right now (network fees)
 }
 ```
 
