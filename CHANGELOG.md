@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.0
+
+- Servers follow their payments live: the /v1 socket namespace
+
 ## 0.8.1
 
 - SDKs read a payment's confirmations
